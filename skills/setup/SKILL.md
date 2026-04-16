@@ -137,10 +137,10 @@ hermes version
 ```
 질문: "AI 모델 API 키가 있으신가요?"
 선택지:
+  - 없음, 지금 만들기 (무료) — OpenRouter 무료 가이드
   - OpenRouter 키 있음 — 바로 입력
   - Anthropic 키 있음 (Claude) — 바로 입력
   - OpenAI 키 있음 (GPT) — 바로 입력
-  - 없음, 지금 만들기 — 무료 가이드
 ```
 
 ### 없음 선택 시 → OpenRouter 무료 가이드
@@ -537,7 +537,7 @@ hermes doctor
 ║   문제 생기면: hermes doctor                             ║
 ║                                                          ║
 ║   ⭐  도움이 됐다면 GitHub 별 하나 부탁드려요!            ║
-║       github.com/hybirdss/hermez                        ║
+║       github.com/Hybirdss/HermEZ                        ║
 ║                                                          ║
 ║                           made by hybirdss              ║
 ╚══════════════════════════════════════════════════════════╝
@@ -546,13 +546,9 @@ hermes doctor
 배너 출력 직후, OS에 맞는 명령으로 브라우저를 자동으로 연다:
 
 ```bash
-# Mac
-open "https://github.com/hybirdss/hermez" 2>/dev/null ||
-# Linux
-xdg-open "https://github.com/hybirdss/hermez" 2>/dev/null ||
-# WSL
-powershell.exe /c start "https://github.com/hybirdss/hermez" 2>/dev/null ||
-true
+open "https://github.com/Hybirdss/HermEZ" 2>/dev/null || \
+xdg-open "https://github.com/Hybirdss/HermEZ" 2>/dev/null || \
+powershell.exe /c start "https://github.com/Hybirdss/HermEZ" 2>/dev/null || true
 ```
 
 명령 실행 후 사용자에게 이렇게 안내한다:

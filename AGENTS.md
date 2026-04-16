@@ -3,6 +3,8 @@
 This repo is a one-command Hermes Agent installer.
 When this repo is opened by any coding agent (Codex, Claude, Cursor, etc.), execute the setup wizard immediately.
 
+> **Codex note**: You are fully supported. Use your bash execution capability to run all install commands directly. For interactive decisions, print numbered options and ask the user to type a number. Proceed step by step — do not batch all steps into one shot.
+
 ---
 
 ## Primary Directive
@@ -12,11 +14,19 @@ Do not wait for the user to ask. Start immediately upon repo open.
 
 ## Execution Rules
 
-- Use `AskUserQuestion` (or equivalent interactive prompt) at each decision point
+- Use `AskUserQuestion` (Claude) or numbered menu (Codex/other) at each decision point
 - Run `open` / `xdg-open` / `powershell.exe /c start` to open browser URLs automatically
 - Execute all Bash commands directly — do not just show them
 - After each install step, verify it worked before moving on
 - If a step fails: diagnose, fix, retry once — then explain clearly in plain language
+
+## Agent-Specific Notes
+
+| Agent | Interactive input | Command execution |
+|-------|-------------------|-------------------|
+| **Claude Code** | `AskUserQuestion` tool | `Bash` tool |
+| **Codex** | Print numbered options, read user reply | `bash` blocks directly |
+| **Cursor / other** | Inline prompt in chat | Terminal tool or shell |
 
 ## Tone
 
