@@ -135,6 +135,7 @@ URL 을 열 때 아래 **한 줄 패턴**을 사용한다 (`[URL]` 만 치환):
   [ -d ~/.hermes ] && echo "~/.hermes 존재 (기존 설치)" || echo "~/.hermes 없음 (신규 설치)"
   [ -f ~/.codex/auth.json ] && echo "Codex CLI 인증 존재 (OAuth 재사용 가능)" || echo "Codex CLI 인증 없음"
   [ -d ~/.claude ] && echo "Claude Code 존재" || echo "Claude Code 없음"
+  [ -d ~/.openclaw ] && echo "⚕ OpenClaw 감지 — 설치 후 'hermes claw migrate' 로 자동 이주 가능" || echo "OpenClaw 없음"
 
   echo ""
   echo "=== 네트워크 ==="
@@ -181,6 +182,7 @@ URL 을 열 때 아래 **한 줄 패턴**을 사용한다 (`[URL]` 만 치환):
 | `IS_WSL=1` | Linux/WSL2 경로로 자동 진행 |
 | Linux (WSL 아님, `DISPLAY` 있음) | Linux 경로 자동 진행 |
 | Linux (`DISPLAY` 없음) + SSH 감지 | 서버 환경 — 메신저 연동 단계에서 원격 URL 출력 모드 |
+| `~/.openclaw` 존재 | STEP 2 설치 후 `hermes claw migrate` 실행 자동 제안 (세션·스킬·키 이주) |
 | 위 어느 것도 명확하지 않을 때만 | AskUserQuestion 으로 직접 질문 |
 
 감지가 확실하면 다음 블록을 사용자에게 출력하고 STEP 2 로 진행:
@@ -436,10 +438,15 @@ hermes setup model
 └─────────────────────────────────────────────────────────┘
 ```
 
-아래 명령 실행 (Hermes 가 디바이스 코드 생성 + 브라우저 자동 오픈 시도):
+아래 명령 중 하나 실행 (공식적으로 두 경로 모두 지원 — 동일 OAuth 플로우):
+
 ```bash
+hermes login --provider openai-codex
+# 또는
 hermes auth add openai-codex
 ```
+
+두 명령 다 디바이스 코드 생성 + 브라우저 자동 오픈. `hermes login` 이 더 최신·선호 명령이나 차이는 없음.
 
 사용자 안내:
 ```
@@ -797,6 +804,11 @@ hermes gateway status
 ```
 Telegram/Discord 에서 방금 만든 봇에게 메시지 보내보세요.
 "안녕" 보내면 Hermes 가 답장합니다.
+
+[팁] 나중에 가족/동료에게 봇 권한 주려면:
+  hermes pairing list       # 대기 중인 페어링 코드 확인
+  hermes pairing approve <code>
+  hermes pairing revoke <user>
 ```
 
 ---
@@ -928,13 +940,14 @@ hermes gateway status
 ║                                                          ║
 ║   ✓  설치 완료!                                          ║
 ║                                                          ║
-║   터미널:      hermes                                    ║
-║   웹 대시보드: hermes web                                 ║
-║   Telegram:   봇에게 메시지                              ║
-║   Discord:    채널에서 @봇이름 멘션                      ║
+║   터미널:       hermes                                    ║
+║   웹 대시보드:  hermes dashboard  (http://localhost:9119) ║
+║   Telegram:    봇에게 메시지                             ║
+║   Discord:     채널에서 @봇이름 멘션                     ║
 ║                                                          ║
-║   업데이트:    hermes update                             ║
-║   진단:        hermes doctor                             ║
+║   업데이트:     hermes update                            ║
+║   진단:         hermes doctor                            ║
+║   로그:         hermes logs                              ║
 ║                                                          ║
 ║   ⭐  도움이 됐다면 GitHub 별 하나 부탁드려요!            ║
 ║       github.com/Hybirdss/HermEZ                        ║
@@ -950,6 +963,111 @@ hermes gateway status
 브라우저가 열렸습니다. 도움이 됐다면 ⭐ 눌러주세요!
 (브라우저 안 열리면 위 주소 직접 복사)
 ```
+
+---
+
+## Hermes 전체 명령 치트시트 (설치 후 참고용)
+
+Claude 가 사용자에게 "더 이런 것들도 있어요" 로 제시할 수 있는 공식 명령들. `hermes_cli/main.py` 직독 기반.
+
+### 기본
+| 명령 | 설명 |
+|------|-----|
+| `hermes` | 인터랙티브 CLI 시작 |
+| `hermes chat` | `hermes` 와 동일 |
+| `hermes version` | 버전 표시 |
+| `hermes status` | 상태 점검 (간단) |
+| `hermes doctor` | 상세 진단 |
+| `hermes logs` | 로그 뷰어 |
+| `hermes update` | 업데이트 |
+| `hermes uninstall` | 제거 |
+
+### 설정
+| 명령 | 설명 |
+|------|-----|
+| `hermes setup [model\|gateway\|tools\|tts\|terminal\|agent]` | 섹션별 대화형 wizard |
+| `hermes config show` | 현재 설정 전체 출력 |
+| `hermes config get <path>` | 특정 값 (`model.provider` 등) |
+| `hermes config set <key> <값>` | 값 저장 |
+| `hermes config check` | 설정 유효성 검사 |
+| `hermes config path` / `env-path` | config 파일 경로 출력 |
+| `hermes config migrate` | 설정 스키마 업데이트 |
+| `hermes config edit` | 기본 에디터로 config 열기 |
+
+### 인증 / 프로바이더
+| 명령 | 설명 |
+|------|-----|
+| `hermes login --provider nous` | Nous Portal OAuth |
+| `hermes login --provider openai-codex` | ChatGPT OAuth (= `auth add openai-codex`) |
+| `hermes logout` | 크레덴셜 삭제 |
+| `hermes auth list` | 저장된 크레덴셜 풀 보기 |
+| `hermes auth add <provider>` | 크레덴셜 추가 |
+| `hermes auth remove <idx\|id>` | 제거 |
+| `hermes auth reset <provider>` | 소진 상태 리셋 |
+| `hermes model` | provider/모델 변경 대화형 |
+
+### 메신저 게이트웨이
+| 명령 | 설명 |
+|------|-----|
+| `hermes gateway setup` | 플랫폼 설정 대화형 |
+| `hermes gateway run` | 포그라운드 실행 (WSL/Docker/디버그) |
+| `hermes gateway install` | systemd/launchd 서비스 설치 |
+| `hermes gateway start/stop/restart` | 서비스 제어 |
+| `hermes gateway status` | 상태 확인 |
+| `hermes gateway uninstall` | 서비스 제거 |
+| `hermes pairing list` | 페어링 대기·승인 유저 |
+| `hermes pairing approve <code>` | 페어링 승인 |
+| `hermes pairing revoke <user>` | 접근 취소 |
+
+### 웹 UI
+| 명령 | 설명 |
+|------|-----|
+| `hermes dashboard` | 웹 대시보드 (기본 포트 9119, 자동 브라우저) |
+| `hermes dashboard --port 9000 --no-open` | 포트 변경, 브라우저 안 열기 |
+
+### 스킬 / 플러그인 / MCP
+| 명령 | 설명 |
+|------|-----|
+| `hermes skills browse` | 공식 Skills Hub 탐색 |
+| `hermes skills search <쿼리>` | 검색 |
+| `hermes skills install <skill>` | 설치 |
+| `hermes skills list` / `update` / `uninstall` | 관리 |
+| `hermes skills config` | 스킬별 활성화 설정 |
+| `hermes plugins list` / `install` / `enable` | 플러그인 관리 |
+| `hermes mcp list` / `add` / `remove` / `test` | MCP 서버 관리 |
+| `hermes mcp serve` | Hermes 를 MCP 서버로 노출 |
+| `hermes tools list` / `enable` / `disable` | 툴 on/off (플랫폼별) |
+
+### 세션 / 메모리 / 프로필
+| 명령 | 설명 |
+|------|-----|
+| `hermes sessions list` | 최근 세션 |
+| `hermes sessions browse` | 대화형 브라우저 (FTS5 검색) |
+| `hermes sessions export <id> <file>` | JSONL 내보내기 |
+| `hermes sessions prune` | 오래된 세션 삭제 |
+| `hermes memory setup` | 메모리 provider 설정 |
+| `hermes memory status` | 현재 메모리 상태 |
+| `hermes memory off` | 외부 provider 끄기 (내장만) |
+| `hermes profile list` / `use` / `create` | 멀티 에이전트 프로필 (같은 호스트에서 여러 Hermes 동시 운영) |
+| `hermes profile export/import` | 프로필 이식 |
+
+### 자동화 / 통합
+| 명령 | 설명 |
+|------|-----|
+| `hermes cron list` / `create` / `edit` / `pause` | 스케줄 작업 (자연어로 "매일 오전 9시에 X") |
+| `hermes cron tick` | 대기 중 작업 즉시 실행 |
+| `hermes webhook subscribe` / `list` / `test` | 웹훅 구독 |
+| `hermes acp` | ACP 서버 (VS Code/Zed/JetBrains 통합) |
+| `hermes dump` | 디버그 덤프 |
+| `hermes backup` / `import` | 백업·복원 |
+| `hermes debug share` / `delete` | 디버그 정보 공유 |
+| `hermes completion <shell>` | bash/zsh/fish autocomplete 생성 |
+
+### OpenClaw 이주
+| 명령 | 설명 |
+|------|-----|
+| `hermes claw migrate` | **OpenClaw 설정·세션·스킬·키를 자동으로 Hermes 로 이주** (OpenClaw 유저가 전환할 때 한 번에) |
+| `hermes claw cleanup` | 이주 후 OpenClaw 잔재 제거 |
 
 ---
 
