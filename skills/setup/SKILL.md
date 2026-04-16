@@ -50,9 +50,93 @@ URL 을 열 때 아래 **한 줄 패턴**을 사용한다 (`[URL]` 만 치환):
 
 ---
 
+## STEP 0 — 환경 조사 (가장 먼저, 반드시 실행)
+
+사용자에게 묻기 전에 환경을 **자동으로** 수집한다. 사용자의 답변은 틀릴 수 있지만, 아래 명령 출력은 틀리지 않는다.
+
+한 번에 실행 (출력 변수에 수집):
+```bash
+{
+  echo "=== OS ==="
+  uname -s -m -r
+  [ -f /etc/os-release ] && cat /etc/os-release | head -3
+  [ -f /proc/version ] && grep -qi microsoft /proc/version && echo "IS_WSL=1" || echo "IS_WSL=0"
+
+  echo ""
+  echo "=== Shell ==="
+  echo "SHELL=$SHELL"
+  echo "TERM=$TERM"
+  [ -n "$TERM_PROGRAM" ] && echo "TERM_PROGRAM=$TERM_PROGRAM"
+
+  echo ""
+  echo "=== 필수 도구 ==="
+  for cmd in curl git python3 node npm uv hermes; do
+    if command -v "$cmd" >/dev/null 2>&1; then
+      v=$("$cmd" --version 2>&1 | head -1)
+      echo "$cmd: $v"
+    else
+      echo "$cmd: (없음)"
+    fi
+  done
+
+  echo ""
+  echo "=== 기존 설정 ==="
+  [ -d ~/.hermes ] && echo "~/.hermes 존재 (기존 설치)" || echo "~/.hermes 없음 (신규 설치)"
+  [ -f ~/.codex/auth.json ] && echo "Codex CLI 인증 존재 (OAuth 재사용 가능)" || echo "Codex CLI 인증 없음"
+  [ -d ~/.claude ] && echo "Claude Code 존재" || echo "Claude Code 없음"
+
+  echo ""
+  echo "=== 네트워크 ==="
+  curl -s -o /dev/null -w "github.com: %{http_code}\n" --max-time 5 https://raw.githubusercontent.com 2>/dev/null || echo "github.com: unreachable"
+
+  echo ""
+  echo "=== 디스크 ==="
+  df -h "$HOME" | tail -1 | awk '{print "Home 여유: " $4 " / 전체: " $2}'
+} 2>&1
+```
+
+**수집 결과 해석 원칙:**
+
+| 감지 결과 | 분기 |
+|----------|-----|
+| `IS_WSL=1` | STEP 1 OS 선택 자동으로 "Linux / WSL2" 로 건너뛰기 (묻지 말 것) |
+| `uname -s` = `Darwin` | STEP 1 OS 선택 자동으로 "Mac" 으로 건너뛰기 |
+| `~/.hermes 존재` | "기존 설치 감지. 새로 설치 / 재설정 / 업데이트?" 묻기 |
+| `Codex CLI 인증 존재` | STEP 3 선택 2(ChatGPT OAuth) 에서 자동 import 제안 |
+| `hermes` 이미 설치 + 버전 최신 | STEP 2 설치 스킵, STEP 3 로 점프 |
+| `curl 없음` | STEP 2 전에 curl 먼저 설치 안내 |
+| `Home 여유 < 2G` | 경고 출력 후 계속 |
+| `github.com: 000` 또는 unreachable | 네트워크 경고, 프록시 사용 여부 질문 |
+
+**사용자에게 요약 한 줄로 리포트:**
+```
+감지: macOS 15.2 (arm64) · zsh · Python 3.11 · Node 24 · hermes 미설치 · 네트워크 OK
+```
+
+사용자가 "다르게 해달라" 하기 전까지 감지 결과로 자동 진행.
+
+---
+
 ## STEP 1 — OS 확인
 
-AskUserQuestion:
+**STEP 0 감지 결과로 자동 분기 우선.** 아래 표 참조:
+
+| STEP 0 감지 | 분기 |
+|------------|-----|
+| `uname -s` = `Darwin` | Mac 경로로 자동 진행 (묻지 않음) |
+| `IS_WSL=1` | Linux/WSL2 경로로 자동 진행 |
+| Linux (WSL 아님, `DISPLAY` 있음) | Linux 경로 자동 진행 |
+| Linux (`DISPLAY` 없음) + SSH 감지 | 서버 환경 — 메신저 연동 단계에서 원격 URL 출력 모드 |
+| Termux 경로 감지 (`$PREFIX/com.termux` 존재) | Android 경로 자동 진행 |
+| 위 어느 것도 명확하지 않을 때만 | AskUserQuestion 으로 직접 질문 |
+
+감지가 확실하면 다음 블록을 사용자에게 출력하고 STEP 2 로 진행:
+```
+감지된 환경: <OS> · <arch> · <shell>
+이 환경에서 설치 가능합니다. 계속 진행합니다.
+```
+
+### 감지 불확실 시 (fallback) — AskUserQuestion
 
 ```
 질문: "어떤 환경에서 설치하시나요?"
@@ -597,13 +681,123 @@ Telegram/Discord 에서 방금 만든 봇에게 메시지 보내보세요.
 
 ---
 
-## STEP 5 — 검증 및 완료
+## STEP 5 — 검증 및 자가 치유 루프
 
+### 5-A. 기본 검증
+
+3개 명령을 순서대로 실행:
 ```bash
+hermes version
 hermes doctor
+hermes config get MODEL   # 또는 hermes config list
 ```
 
-모든 체크 ✓ 면 완료. 문제 있으면 해당 섹션 출력 보고 조치.
+**검증 합격 조건:**
+1. `hermes version` 에 정상 버전 출력 (v2026.x.x 형태)
+2. `hermes doctor` 의 모든 체크 ✓ (또는 warning 만 있고 error 없음)
+3. `hermes config get MODEL` 에 STEP 3 에서 설정한 모델명 출력
+
+### 5-B. 실제 대화 테스트 (무과금 최소 호출)
+
+```bash
+echo "안녕. 그냥 OK 라고만 답해줘." | hermes --non-interactive 2>&1 | head -20
+```
+
+`--non-interactive` 플래그가 없는 버전이면 대안:
+```bash
+timeout 20 hermes <<< "안녕. OK 라고 답해줘" 2>&1 | head -20
+```
+
+**합격 조건:** `OK` 또는 유사한 응답이 출력되면 설정 정상.
+
+### 5-C. 게이트웨이 검증 (STEP 4 에서 설정한 경우만)
+
+```bash
+hermes gateway status
+```
+
+출력에 `running` / `healthy` / `connected` 계열 문구가 있어야 합격.
+
+---
+
+### 5-D. 실패 시 자가 치유 루프 (최대 3회)
+
+5-A / 5-B / 5-C 중 하나라도 실패하면 **자동으로 해결 시도**. 사용자에게 에러 raw 텍스트만 던지지 말 것.
+
+**루프 1회당 절차:**
+
+1. **에러 텍스트 정규화** — 실제 에러 메시지에서 stack trace 를 제외하고 핵심 1~2 줄만 추출. 예:
+   ```
+   원본: "Traceback ... ModuleNotFoundError: No module named 'foo'. File line..."
+   정규화: "ModuleNotFoundError: No module named 'foo'"
+   ```
+
+2. **공식 레포에서 해결책 검색** — 병렬로:
+   ```bash
+   # hermes-agent Issues 검색
+   gh search issues --repo NousResearch/hermes-agent "<정규화된 에러 키워드>" --state all --limit 5
+
+   # hermes-agent PRs 검색
+   gh search prs --repo NousResearch/hermes-agent "<정규화된 에러 키워드>" --state all --limit 5
+   ```
+   동시에 `WebSearch`:
+   - `"site:github.com/NousResearch/hermes-agent <에러 키워드>"`
+   - `"site:hermes-agent.nousresearch.com troubleshooting <에러 키워드>"`
+
+3. **해결책 후보 선정** — 검색 결과 중:
+   - closed + merged PR (fix 확정)
+   - 공식 답변 달린 issue
+   - 공식 docs 의 troubleshooting 섹션
+
+4. **자동 수정 적용** — 해결책의 요지를 파싱해서 가능한 조치:
+   | 에러 유형 | 자동 조치 |
+   |----------|---------|
+   | PATH 문제 (`command not found`) | `export PATH="$HOME/.local/bin:$PATH"` 후 재시도 |
+   | Python 버전 | `uv python install 3.11 && uv python pin 3.11` |
+   | Node 버전 | `nvm install 24 && nvm use 24` (nvm 있을 때) |
+   | 의존성 누락 | `hermes update` → 재설치 스크립트 재실행 |
+   | Config 키 대소문자 | 소문자로 썼으면 대문자로 재설정 |
+   | Anthropic "out of usage" | OAuth 경로면 API 키로 전환 안내 |
+   | Gateway 연결 실패 | `hermes gateway setup` 재실행 + Discord Intent 재확인 |
+   | 모델 404/deprecated | STEP 3 모델 WebSearch 재수행 후 `MODEL` 재설정 |
+   | SSL/네트워크 | 프록시 환경변수 확인, `curl -v` 로 진단 |
+
+5. **재검증** — 5-A/5-B 해당 항목 재실행.
+
+6. **성공하면** → 완료 배너로. **실패하면** 루프 2회차, 다른 검색어/해결책 시도.
+
+### 5-E. 3회 실패 시 → 사용자에게 정제된 리포트
+
+3회 시도 후에도 실패하면 사용자에게 아래 형식으로 보고:
+
+```
+╔══════════════════════════════════════════════════════════╗
+║  설치 검증 실패                                          ║
+╠══════════════════════════════════════════════════════════╣
+║                                                          ║
+║  시도한 것 (3회):                                        ║
+║  1. <조치 1> → <결과>                                    ║
+║  2. <조치 2> → <결과>                                    ║
+║  3. <조치 3> → <결과>                                    ║
+║                                                          ║
+║  실제 에러 (정규화):                                     ║
+║    <에러 핵심 1줄>                                       ║
+║                                                          ║
+║  관련 공식 이슈:                                         ║
+║    - #<번호>: <제목> (<상태>)                            ║
+║    - #<번호>: <제목>                                     ║
+║                                                          ║
+║  다음 단계 (사용자 선택):                                 ║
+║    a) 새 이슈 올리기 (URL 자동 오픈)                     ║
+║    b) Discord 커뮤니티에 질문 (URL)                      ║
+║    c) 지금은 건너뛰고 수동 진행                          ║
+║                                                          ║
+╚══════════════════════════════════════════════════════════╝
+```
+
+새 이슈 템플릿은 STEP 0 에서 수집한 환경 정보 + 에러 텍스트 + 시도한 조치를 자동으로 포함. 브라우저 오픈 (규칙 패턴): `https://github.com/NousResearch/hermes-agent/issues/new?title=<URL-encoded>&body=<URL-encoded>`.
+
+---
 
 ### 완료 배너 (출력)
 
