@@ -5,34 +5,63 @@ Claude가 이 파일을 읽으면 아래 단계를 순서대로 실행한다.
 
 ## 치명적 원칙
 
-- `hermes config set` 의 키 이름은 **전부 대문자** (UPPER_SNAKE_CASE). 소문자 쓰면 안 먹힘.
 - API 키가 포함된 명령은 실행 전 **맨 앞에 공백 한 칸**을 넣는다 (`HISTCONTROL=ignorespace` 가 기본이면 bash history에 안 남음).
 - 키는 화면에 그대로 출력하지 말 것.
-- **Anthropic Claude 는 OAuth 금지.** Hermes 의 "OAuth (Claude Code)" 경로 선택 X. API 키만 사용 (이유: credential 공유 시 "out of extra usage" 에러 — GitHub #6475). Claude 는 유료 API.
+- **Anthropic Claude 는 OAuth 금지.** Hermes 의 "OAuth (Claude Code)" 경로 선택 X. API 키만 사용 (credential 공유 시 "out of extra usage" 에러 — GitHub #6475). Claude 는 유료 API.
 - **Claude / Gemini 는 유료 API.** 토큰당 과금. 카드 등록 필수.
 - **이 파일 안에 적힌 모델명(`deepseek-*`, `gpt-*`, `claude-*`, `glm-*` 등)을 그대로 쓰지 말 것.** STEP 3 에 모델 선정 절차가 있음. 반드시 `WebSearch` 로 오늘 날짜 기준 최신 모델 조회 후 사용. 모델은 월 단위로 deprecated 된다.
 
-### Provider 값 (공식 목록, `cli-config.yaml.example` 기준)
+### 🔑 키 네이밍 — 공식 `hermes_cli/setup.py` 기준
 
-`hermes config set PROVIDER <값>` 또는 `model.provider: <값>` 에 들어갈 수 있는 값:
+두 종류가 섞이면 작동 안 한다. 정확히 구분:
+
+| 종류 | 명령 포맷 | 저장 위치 | 예시 |
+|------|----------|----------|------|
+| **API 키 / 토큰 (env var)** | `hermes config set <UPPER_SNAKE_CASE> <값>` | `~/.hermes/.env` | `hermes config set OPENROUTER_API_KEY sk-or-v1-...` |
+| **설정 값 (YAML path)** | `hermes config set <lower.dot.path> <값>` | `~/.hermes/config.yaml` | `hermes config set model.provider openrouter` |
+
+**핵심:**
+- `PROVIDER`, `MODEL` 같은 대문자 설정 키는 **env var 목록에 없음 → 동작 안 함.**
+- 공식 자동화 가이드가 직접 보여주는 형태:
+  ```bash
+  hermes config set model.provider custom
+  hermes config set model.base_url http://localhost:8080/v1
+  hermes config set model.default your-model-name
+  ```
+- `hermes config set` 은 키 이름 패턴으로 자동 분류 (대문자 snake → .env, 점 표기 → YAML).
+
+### Provider 값 (공식 `cli-config.yaml.example` 기준)
+
+`model.provider` 에 들어갈 수 있는 값:
 
 | 값 | 설명 | 필요한 크레덴셜 |
 |---|------|----------------|
 | `auto` | 있는 키로 자동 선택 (기본값) | — |
-| `openrouter` | OpenRouter (여러 모델 프록시) | `OPENROUTER_API_KEY` 또는 `OPENAI_API_KEY` |
+| `openrouter` | OpenRouter (다수 모델 프록시) | `OPENROUTER_API_KEY` 또는 `OPENAI_API_KEY` |
 | `anthropic` | Anthropic 직결 | `ANTHROPIC_API_KEY` (OAuth 금지) |
 | `openai-codex` | ChatGPT 계정 OAuth | `hermes auth add openai-codex` |
 | `gemini` | Google AI Studio 직결 | `GOOGLE_API_KEY` 또는 `GEMINI_API_KEY` |
 | `zai` | z.ai / ZhipuAI GLM | `GLM_API_KEY` |
 | `nous` | Nous Portal OAuth | `hermes login` |
 | `copilot` | GitHub Copilot | `GITHUB_TOKEN` |
+| `kimi-coding` | Kimi / Moonshot | `KIMI_API_KEY` |
+| `minimax` | MiniMax 글로벌 | `MINIMAX_API_KEY` |
+| `custom` | 로컬 LMStudio/Ollama 등 OpenAI-compat | `model.base_url` 설정 |
 
-> **공식 목록에 `openai` 는 없음.** OpenAI 모델을 쓰려면 OpenRouter 경유 (provider: openrouter + `OPENAI_API_KEY`) 또는 ChatGPT OAuth (provider: openai-codex).
+> **`openai` 는 공식 목록에 없음.** OpenAI 모델 쓰려면 OpenRouter 경유 (provider: `openrouter` + `OPENAI_API_KEY`) 또는 ChatGPT OAuth (provider: `openai-codex`).
 
-### 모델 지정 포맷
+### 모델 지정 포맷 — 슬래시 (`/`)
 
-`.env.example` 공식 예시: `anthropic/claude-opus-4.6` — **슬래시** 구분.
-`hermes model` 대화형 UI 는 내부적으로 `provider:model` 콜론 포맷도 받지만, config 에 저장될 때는 `provider/model` 슬래시.
+공식 `.env.example` 예시: `anthropic/claude-opus-4.6`. 콜론(`:`) 은 `/model` 슬래시 커맨드용이고, **config 저장·env 에선 슬래시**.
+
+### 🎯 2단 실행 전략 (A+B 하이브리드)
+
+각 STEP 의 설정 작업은 **항상 두 경로 준비**:
+
+1. **주 경로 (자동)** — Claude 가 `hermes config set` 으로 직접 값 주입. 빠르고 한국어 가이드 완비.
+2. **폴백 (대화형)** — 주 경로 실패 / 사용자가 선호 시 `hermes setup [section]` 실행. Claude 는 화면 출력을 읽고 각 prompt 를 한국어로 해설하며 다음 행동 안내.
+
+Claude 는 기본적으로 주 경로 시도 → 실패 감지 시 자동으로 폴백으로 전환.
 
 ## 브라우저 오픈 규칙
 
@@ -232,7 +261,8 @@ hermes version
 
 그래도 실패하면 터미널 완전히 닫고 다시 열어달라고 안내.
 
-> **참고 — 공식 setup wizard.** Hermes 는 `hermes setup` 명령어로 모든 설정(API 키, 모델, 게이트웨이) 을 한번에 인터랙티브로 진행할 수 있음. 우리 SKILL.md 는 더 친절한 한국어 가이드·브라우저 자동 오픈을 위해 단계별로 쪼갰지만, STEP 3-4 에서 막히면 fallback 으로 `hermes setup` 실행 안내 가능.
+> **A+B 하이브리드 전략.** Hermes 는 `hermes setup` 공식 wizard 를 제공. 우리 SKILL.md 는 각 STEP 에서 **자동 주 경로 (`hermes config set model.provider ...`) + 대화형 폴백 (`hermes setup [section]`)** 두 가지를 준비. Claude 가 자동 경로 먼저 시도하고 실패 감지 시 대화형으로 전환. 대화형 화면은 Claude 가 한국어로 실시간 해설한다.
+> 공식 setup 서브커맨드: `hermes setup [model|tts|terminal|gateway|tools|agent]`.
 
 ---
 
@@ -248,7 +278,7 @@ hermes version
 2. **해당 provider 의 최신 주력 모델** — 쿼리: `"{provider명} best model {오늘의 YYYY-MM} tool calling agent"`
 3. **deprecation 확인** — 쿼리: `"{후보 모델명} deprecated"` (hit 있으면 제외)
 
-세 결과 교차해서 남는 모델 1개를 사용자에게 제시. 근거 1줄 + 오늘 날짜 표기. 사용자 승인 후 `hermes config set MODEL` 실행.
+세 결과 교차해서 남는 모델 1개를 사용자에게 제시. 근거 1줄 + 오늘 날짜 표기. 사용자 승인 후 `hermes config set model.default <모델>` 실행.
 
 > 오늘 날짜는 환경 `currentDate` 참조.
 
@@ -298,11 +328,6 @@ AskUserQuestion: "OpenRouter 키를 복사하셨나요?"
   - Google 로그인이 안 돼요 — 안내 재출력
   - 다른 방법 원해요 — STEP 3 처음으로
 
-키를 Other 로 받아 저장:
-```bash
- hermes config set OPENROUTER_API_KEY [입력받은 키]
-```
-
 **모델은 WebSearch 로 조회.** 병렬 2개:
 - `"site:hermes-agent.nousresearch.com OpenRouter free model {오늘의 YYYY-MM}"`
 - `"OpenRouter best free model {오늘의 YYYY-MM} agent tool calling :free"`
@@ -313,12 +338,38 @@ AskUserQuestion: "OpenRouter 키를 복사하셨나요?"
 - deprecated 언급 없음
 - 컨텍스트 32k+
 
-선정 결과를 `"YYYY-MM-DD 기준 현재 추천: <모델 ID>. 이유: <1줄>"` 으로 제시. 승인 후:
+선정 결과를 `"YYYY-MM-DD 기준 현재 추천: <모델 ID>. 이유: <1줄>"` 으로 제시하고 사용자 승인 받는다.
+
+#### 주 경로 (자동) — 권장
+
+Other 로 받은 키와 WebSearch 로 고른 모델을 한 번에 주입:
 ```bash
- hermes config set MODEL "openrouter/<선정된 모델>"
+ hermes config set OPENROUTER_API_KEY [입력받은 키]
+ hermes config set model.provider openrouter
+ hermes config set model.default "openrouter/<선정된 모델>"
 ```
 
-사용자 거부 시 `hermes model` 대화형 선택.
+검증:
+```bash
+hermes config get model.provider
+hermes config get model.default
+```
+
+#### 폴백 (대화형) — 주 경로 실패 시 또는 사용자가 원할 때
+
+```bash
+hermes setup model
+```
+
+대화형 메뉴가 뜸. Claude 는 각 화면을 읽어 한국어로 안내:
+
+| Hermes 질문 (영문) | Claude 의 한국어 안내 | 사용자가 고를 것 |
+|-------------------|---------------------|----------------|
+| "Choose your provider" | "Provider 를 선택하세요. OpenRouter 무료 경로면 `openrouter` 선택" | `openrouter` |
+| "Enter API key" | "조금 전 복사한 sk-or-v1- 키 붙여넣기" | (키 붙여넣기) |
+| "Choose your model" | "WebSearch 로 찾은 모델: `<모델명>`. 목록에 있으면 그대로, 없으면 상단 flagship" | (모델명 입력/선택) |
+
+완료 후 `hermes doctor` 로 검증.
 
 ---
 
@@ -362,22 +413,26 @@ AskUserQuestion: "OAuth 인증 완료됐나요?"
   - ChatGPT Free 플랜이래요 — 선택 1(OpenRouter) 또는 선택 4(유료 API)
   - 이미 Codex CLI 있어요 — `~/.codex/auth.json` 자동 import (안 되면 `hermes auth add openai-codex` 강제)
 
-인증 완료 후 **provider 는 `openai-codex`** (공식 목록 값):
-```bash
- hermes config set PROVIDER openai-codex
-```
-
 **모델 WebSearch** (선정 원칙 적용):
 - `"site:hermes-agent.nousresearch.com OpenAI Codex recommended model {오늘의 YYYY-MM}"`
 - `"OpenAI Codex latest model {오늘의 YYYY-MM} agent tool calling"`
 
-선정 후 사용자 승인 → `hermes config set MODEL "openai/<선정 모델>"` (Codex 가 실제로 호출하는 OpenAI 모델명을 그대로 씀. 예: `openai/gpt-5-codex` 형태. WebSearch 로 실제 최신 이름 확인).
+#### 주 경로 (자동)
 
-안전책: 위 명령이 익숙치 않으면 대화형 사용:
 ```bash
-hermes model
+ hermes config set model.provider openai-codex
+ hermes config set model.default "openai/<선정 모델>"
 ```
-→ 메뉴에서 "OpenAI Codex" 선택 → 모델 선택. Claude 는 WebSearch 로 파악한 모델명을 사용자에게 먼저 알려주고, 메뉴 라벨 중 가장 근접한 것 선택하도록 안내.
+
+(모델 prefix 는 Codex 가 호출하는 실제 OpenAI 모델 네임스페이스. WebSearch 로 최신 이름 확인.)
+
+#### 폴백 (대화형)
+
+```bash
+hermes setup model
+```
+
+메뉴에서 "OpenAI Codex" 선택 → 모델 선택. Claude 는 WebSearch 로 찾은 모델명 먼저 알려주고, 메뉴에 동일 명칭 있으면 그대로, 없으면 가장 근접한 상단 flagship 선택 안내.
 
 ---
 
@@ -411,17 +466,24 @@ AskUserQuestion: "z.ai API 키 복사했나요?"
   - z.ai 가입 안 돼요 — 선택 1(OpenRouter) 로 우회
   - 다른 방법 원해요 — STEP 3 처음으로
 
-키 저장:
-```bash
- hermes config set GLM_API_KEY [입력받은 키]
- hermes config set PROVIDER zai
-```
-
 **모델 WebSearch** (선정 원칙 적용):
 - `"site:hermes-agent.nousresearch.com GLM zai recommended model {오늘의 YYYY-MM}"`
 - `"z.ai GLM latest model {오늘의 YYYY-MM} coding agent"`
 
-선정 후 승인 → `hermes config set MODEL "zai/<선정 모델>"`.
+#### 주 경로 (자동)
+
+```bash
+ hermes config set GLM_API_KEY [입력받은 키]
+ hermes config set model.provider zai
+ hermes config set model.default "zai/<선정 모델>"
+```
+
+#### 폴백 (대화형)
+
+```bash
+hermes setup model
+```
+→ "z.ai / ZhipuAI" 선택 → 모델 선택.
 
 ---
 
@@ -462,13 +524,17 @@ AskUserQuestion: "어느 provider 직접 쓰시겠어요?"
 ⚠️  Hermes OAuth 경로 쓰지 말고 이 API 키만 사용.
 ```
 
-저장:
+모델 WebSearch 후 주입:
+
 ```bash
  hermes config set ANTHROPIC_API_KEY [입력받은 키]
- hermes config set PROVIDER anthropic
+ hermes config set model.provider anthropic
+ hermes config set model.default "anthropic/<선정 모델>"
 ```
 
-모델 WebSearch → `hermes config set MODEL "anthropic/<선정 모델>"` (예시 `anthropic/claude-opus-4.6` — 실제 최신은 WebSearch 로).
+(공식 예시 포맷 `anthropic/claude-opus-4.6` — 실제 최신은 WebSearch 로.)
+
+폴백: `hermes setup model` → "Anthropic" 선택 → **API 키** 입력 경로 (OAuth 금지!) → 모델 선택.
 
 #### Google Gemini (API 키)
 
@@ -483,13 +549,15 @@ AskUserQuestion: "어느 provider 직접 쓰시겠어요?"
 💡 AI Studio 에 free tier 있지만 제한적 — 업무용은 유료 권장.
 ```
 
-저장 (`GOOGLE_API_KEY` 가 공식 primary 이름, `GEMINI_API_KEY` 는 alias — 아무거나 하나):
+모델 WebSearch 후 주입 (`GOOGLE_API_KEY` 가 공식 primary, `GEMINI_API_KEY` 는 alias — 아무거나):
+
 ```bash
  hermes config set GOOGLE_API_KEY [입력받은 키]
- hermes config set PROVIDER gemini
+ hermes config set model.provider gemini
+ hermes config set model.default "gemini/<선정 모델>"
 ```
 
-모델 WebSearch → `hermes config set MODEL "gemini/<선정 모델>"`.
+폴백: `hermes setup model` → "Gemini" 선택 → API 키 입력 → 모델 선택.
 
 ---
 
@@ -650,14 +718,34 @@ AskUserQuestion 두 번:
 
 ### 게이트웨이 시작 (공통)
 
-**반드시 setup 먼저** (공식 순서):
+#### 주 경로 (자동) — config 만 저장하고 바로 start
+
+위 Telegram/Discord 섹션에서 이미 `hermes config set TELEGRAM_BOT_TOKEN` 등으로 env var 설정 완료. `hermes gateway setup` 대화형 건너뛰고 바로 start 시도 가능:
+
+```bash
+hermes gateway start
+```
+
+`hermes gateway start` 는 `.env` 의 토큰을 읽어 자동으로 활성 플랫폼 감지. 성공하면 완료.
+
+#### 폴백 (대화형) — start 가 플랫폼 인식 못 할 때
+
 ```bash
 hermes gateway setup
 ```
 
-대화형 화면에서 플랫폼 선택. 방금 config 한 것들이 자동 인식됨. 완료되면:
+대화형 화면이 뜨면 Claude 가 한국어 해설:
+| Hermes 질문 | Claude 안내 |
+|------------|------------|
+| "Enable Telegram? (y/n)" | Telegram 봇 만들었으면 `y` |
+| "Telegram bot token" | `.env` 에 이미 저장돼 있으면 기본값 그대로 Enter |
+| "Enable Discord? (y/n)" | Discord 봇 만들었으면 `y`, Intent ON 확인했는지 재점검 |
+| "Discord bot token" | 기본값 Enter |
+
+완료 후:
 ```bash
 hermes gateway start
+hermes gateway status
 ```
 
 안내:
@@ -676,13 +764,13 @@ Telegram/Discord 에서 방금 만든 봇에게 메시지 보내보세요.
 ```bash
 hermes version
 hermes doctor
-hermes config get MODEL   # 또는 hermes config list
+hermes config get model.default   # 또는 hermes config list
 ```
 
 **검증 합격 조건:**
 1. `hermes version` 에 정상 버전 출력 (v2026.x.x 형태)
 2. `hermes doctor` 의 모든 체크 ✓ (또는 warning 만 있고 error 없음)
-3. `hermes config get MODEL` 에 STEP 3 에서 설정한 모델명 출력
+3. `hermes config get model.default` 에 STEP 3 에서 설정한 모델명 출력 (`hermes config get model.provider` 도 병행 확인)
 
 ### 5-B. 실제 대화 테스트 (무과금 최소 호출)
 
@@ -743,11 +831,13 @@ hermes gateway status
    | Python 버전 | `uv python install 3.11 && uv python pin 3.11` |
    | Node 버전 | `nvm install 24 && nvm use 24` (nvm 있을 때) |
    | 의존성 누락 | `hermes update` → 재설치 스크립트 재실행 |
-   | Config 키 대소문자 | 소문자로 썼으면 대문자로 재설정 |
+   | `PROVIDER` / `MODEL` 대문자 key 오답 | 점 표기법으로 재설정: `hermes config set model.provider <값>` / `hermes config set model.default <값>` |
+   | provider 값 오답 (`openai`, `google`, `codex`) | 공식 목록으로 교체 (`openrouter` / `gemini` / `openai-codex`) |
    | Anthropic "out of usage" | OAuth 경로면 API 키로 전환 안내 |
    | Gateway 연결 실패 | `hermes gateway setup` 재실행 + Discord Intent 재확인 |
-   | 모델 404/deprecated | STEP 3 모델 WebSearch 재수행 후 `MODEL` 재설정 |
+   | 모델 404/deprecated | STEP 3 모델 WebSearch 재수행 후 `model.default` 재설정 |
    | SSL/네트워크 | 프록시 환경변수 확인, `curl -v` 로 진단 |
+   | 자동 경로 알 수 없는 에러 | **대화형 폴백** — `hermes setup` 전체 wizard 실행 후 Claude 가 각 화면 해설 |
 
 5. **재검증** — 5-A/5-B 해당 항목 재실행.
 
@@ -828,7 +918,7 @@ hermes gateway status
 | `Unknown provider` / `Provider not found` | provider 값이 공식 목록에 있는지 확인 (`openai`, `google`, `codex` 전부 오답 — `openrouter` / `gemini` / `openai-codex` 가 맞음) |
 | `out of extra usage` (Anthropic) | Claude OAuth 쓰지 말 것. `hermes config set ANTHROPIC_API_KEY` 로 API 키 전환 |
 | 게이트웨이 연결 실패 | `hermes gateway setup` 다시, Discord Intent ON 확인 |
-| OpenRouter `Insufficient credits` | 유료 모델 사용 중. STEP 3 선택 1 로 돌아가 `:free` 모델 재조회 후 `MODEL` 재설정 |
+| OpenRouter `Insufficient credits` | 유료 모델 사용 중. STEP 3 선택 1 로 돌아가 `:free` 모델 재조회 후 `model.default` 재설정 |
 | 특정 모델 404 / discontinued | `WebSearch` 로 최신 모델 재조회 후 교체 |
 | 브라우저 자동 오픈 실패 | 규칙 패턴의 echo 안내대로 URL 직접 복사 |
 | Python 버전 오류 | Hermes 는 Python **3.11+** 필요. `uv python install 3.11 && uv python pin 3.11` |
