@@ -1,4 +1,4 @@
-# Hermes Agent 설치 마법사
+n# Hermes Agent 설치 마법사
 
 Claude가 이 파일을 읽으면 아래 단계를 순서대로 실행한다.
 사용자에게 먼저 이 배너를 출력하고 시작한다.
@@ -154,15 +154,16 @@ hermes version
 
 ---
 
-AskUserQuestion:
+AskUserQuestion (multiSelect=false):
 
 ```
 질문: "AI 모델 어떻게 쓰시겠어요? (1번이 가장 쉬움)"
 선택지:
   - 🎯 OpenRouter 무료 (카드 등록 없음, 1분)  — 가장 쉬움 (Recommended)
-  - ⭐ Claude 계정으로 로그인 (Anthropic OAuth)  — Claude 유저용
-  - 💳 ChatGPT Plus/Pro 계정으로 크레딧 받기 (OpenAI OAuth)  — GPT 유저용
-  - 🛠 이미 API 키 있어요 — 바로 입력
+  - ⭐ Claude 계정 연결 (Anthropic OAuth)  — Claude Pro/Max 유저용
+  - 🤖 ChatGPT 계정 연결 (OpenAI Codex OAuth)  — ChatGPT Plus/Pro 유저용
+  - 🇨🇳 GLM / z.ai 연결  — GLM Coding Plan 유저용
+  - 🛠 이미 API 키 있어요 — 수동 입력
 ```
 
 ---
