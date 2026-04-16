@@ -9,8 +9,30 @@ Claude가 이 파일을 읽으면 아래 단계를 순서대로 실행한다.
 - API 키가 포함된 명령은 실행 전 **맨 앞에 공백 한 칸**을 넣는다 (`HISTCONTROL=ignorespace` 가 기본이면 bash history에 안 남음).
 - 키는 화면에 그대로 출력하지 말 것.
 - **Anthropic Claude 는 OAuth 금지.** Hermes 의 "OAuth (Claude Code)" 경로 선택 X. API 키만 사용 (이유: credential 공유 시 "out of extra usage" 에러 — GitHub #6475). Claude 는 유료 API.
-- **Claude / Gemini / OpenAI API 는 유료.** 토큰당 과금. 카드 등록 필수.
+- **Claude / Gemini 는 유료 API.** 토큰당 과금. 카드 등록 필수.
 - **이 파일 안에 적힌 모델명(`deepseek-*`, `gpt-*`, `claude-*`, `glm-*` 등)을 그대로 쓰지 말 것.** STEP 3 에 모델 선정 절차가 있음. 반드시 `WebSearch` 로 오늘 날짜 기준 최신 모델 조회 후 사용. 모델은 월 단위로 deprecated 된다.
+
+### Provider 값 (공식 목록, `cli-config.yaml.example` 기준)
+
+`hermes config set PROVIDER <값>` 또는 `model.provider: <값>` 에 들어갈 수 있는 값:
+
+| 값 | 설명 | 필요한 크레덴셜 |
+|---|------|----------------|
+| `auto` | 있는 키로 자동 선택 (기본값) | — |
+| `openrouter` | OpenRouter (여러 모델 프록시) | `OPENROUTER_API_KEY` 또는 `OPENAI_API_KEY` |
+| `anthropic` | Anthropic 직결 | `ANTHROPIC_API_KEY` (OAuth 금지) |
+| `openai-codex` | ChatGPT 계정 OAuth | `hermes auth add openai-codex` |
+| `gemini` | Google AI Studio 직결 | `GOOGLE_API_KEY` 또는 `GEMINI_API_KEY` |
+| `zai` | z.ai / ZhipuAI GLM | `GLM_API_KEY` |
+| `nous` | Nous Portal OAuth | `hermes login` |
+| `copilot` | GitHub Copilot | `GITHUB_TOKEN` |
+
+> **공식 목록에 `openai` 는 없음.** OpenAI 모델을 쓰려면 OpenRouter 경유 (provider: openrouter + `OPENAI_API_KEY`) 또는 ChatGPT OAuth (provider: openai-codex).
+
+### 모델 지정 포맷
+
+`.env.example` 공식 예시: `anthropic/claude-opus-4.6` — **슬래시** 구분.
+`hermes model` 대화형 UI 는 내부적으로 `provider:model` 콜론 포맷도 받지만, config 에 저장될 때는 `provider/model` 슬래시.
 
 ## 브라우저 오픈 규칙
 
@@ -210,6 +232,8 @@ hermes version
 
 그래도 실패하면 터미널 완전히 닫고 다시 열어달라고 안내.
 
+> **참고 — 공식 setup wizard.** Hermes 는 `hermes setup` 명령어로 모든 설정(API 키, 모델, 게이트웨이) 을 한번에 인터랙티브로 진행할 수 있음. 우리 SKILL.md 는 더 친절한 한국어 가이드·브라우저 자동 오픈을 위해 단계별로 쪼갰지만, STEP 3-4 에서 막히면 fallback 으로 `hermes setup` 실행 안내 가능.
+
 ---
 
 ## STEP 3 — AI 모델 연결
@@ -238,7 +262,7 @@ AskUserQuestion:
   - 🎯 OpenRouter 무료 (카드 없음, 1분) — 가장 쉬움 (Recommended)
   - 🤖 ChatGPT 계정 연결 (OpenAI Codex OAuth) — ChatGPT Plus/Pro 유저용
   - 🇨🇳 GLM / z.ai — GLM Coding Plan 또는 저렴한 고성능
-  - 💳 유료 API 직접 (Claude/Gemini/OpenAI) — 비용 발생
+  - 💳 유료 API 직접 (Claude / Gemini) — 비용 발생
 ```
 
 ---
@@ -338,16 +362,22 @@ AskUserQuestion: "OAuth 인증 완료됐나요?"
   - ChatGPT Free 플랜이래요 — 선택 1(OpenRouter) 또는 선택 4(유료 API)
   - 이미 Codex CLI 있어요 — `~/.codex/auth.json` 자동 import (안 되면 `hermes auth add openai-codex` 강제)
 
-인증 완료 후:
+인증 완료 후 **provider 는 `openai-codex`** (공식 목록 값):
 ```bash
- hermes config set PROVIDER codex
+ hermes config set PROVIDER openai-codex
 ```
 
 **모델 WebSearch** (선정 원칙 적용):
 - `"site:hermes-agent.nousresearch.com OpenAI Codex recommended model {오늘의 YYYY-MM}"`
 - `"OpenAI Codex latest model {오늘의 YYYY-MM} agent tool calling"`
 
-선정 후 사용자 승인 → `hermes config set MODEL "codex/<선정 모델>"`.
+선정 후 사용자 승인 → `hermes config set MODEL "openai/<선정 모델>"` (Codex 가 실제로 호출하는 OpenAI 모델명을 그대로 씀. 예: `openai/gpt-5-codex` 형태. WebSearch 로 실제 최신 이름 확인).
+
+안전책: 위 명령이 익숙치 않으면 대화형 사용:
+```bash
+hermes model
+```
+→ 메뉴에서 "OpenAI Codex" 선택 → 모델 선택. Claude 는 WebSearch 로 파악한 모델명을 사용자에게 먼저 알려주고, 메뉴 라벨 중 가장 근접한 것 선택하도록 안내.
 
 ---
 
@@ -395,17 +425,20 @@ AskUserQuestion: "z.ai API 키 복사했나요?"
 
 ---
 
-### 선택 4 — 유료 API 직접 (Anthropic / Google / OpenAI)
+### 선택 4 — 유료 API 직접 (Anthropic / Gemini)
 
-**⚠️  전부 토큰당 과금.** 무료 원하면 선택 1(OpenRouter) 로 돌아갈 것.
+**⚠️  전부 토큰당 과금.** 무료 원하면 선택 1(OpenRouter) 로.
 
-| Provider | 방식 | 최소 충전 | 단가 참고 (WebSearch 로 오늘 값 확인) |
-|----------|-----|---------|--------------------------------------|
-| **Anthropic Claude** | API 키만 (OAuth 금지) | $5 선충전 | 월 1회 이상 `WebSearch "Anthropic API pricing YYYY-MM"` 으로 확인 |
-| **Google Gemini** | API 키 | pay-as-you-go | `WebSearch "Google Gemini API pricing YYYY-MM"` |
-| **OpenAI** (ChatGPT 안 쓰는 경우) | API 키 | 카드 등록 | `WebSearch "OpenAI API pricing YYYY-MM"` |
+| Provider | provider 값 | 환경변수 | 최소 | 단가 |
+|---------|-------------|----------|-----|-----|
+| **Anthropic Claude** | `anthropic` | `ANTHROPIC_API_KEY` | $5 선충전 | `WebSearch "Anthropic API pricing YYYY-MM"` |
+| **Google Gemini** | `gemini` | `GOOGLE_API_KEY` 또는 `GEMINI_API_KEY` | pay-as-you-go | `WebSearch "Google Gemini API pricing YYYY-MM"` |
 
-> **Anthropic 은 Hermes OAuth 경로 절대 사용 금지.** `hermes model` 의 Anthropic 제공자에서 "OAuth (Claude Code)" 옵션 나와도 선택하지 말 것. Hermes ↔ Claude Code credential store 공유 시 "out of extra usage" 에러, 토큰 동기화 불안정 (GitHub #6475). 반드시 **API 키** 경로로만 진행.
+> **OpenAI 직접 API 는 Hermes 가 native 지원 안 함.** 공식 provider 목록에 `openai` 없음. OpenAI 모델 쓰려면:
+> - 선택 2 (ChatGPT OAuth, `openai-codex`) — 구독 있으면 이쪽이 유리
+> - 또는 선택 1 (OpenRouter, `OPENAI_API_KEY` 를 OpenRouter 인증 키로도 사용 가능)
+
+> **Anthropic 은 Hermes OAuth 경로 절대 사용 금지.** `hermes model` 의 Anthropic 제공자에서 "OAuth (Claude Code)" 옵션 나와도 선택하지 말 것. Hermes ↔ Claude Code credential store 공유 시 "out of extra usage" 에러, 토큰 동기화 불안정 (GitHub #6475). **API 키 경로만.**
 
 가격 단가를 사용자에게 보여준 뒤 진행. `WebSearch "{provider} API pricing {오늘의 YYYY-MM}"` 로 현재 값 확인해서 "오늘 기준: input $X/M, output $Y/M" 한 줄로 제시.
 
@@ -413,7 +446,6 @@ AskUserQuestion: "어느 provider 직접 쓰시겠어요?"
 선택지:
   - Anthropic Claude API (유료, 비쌈)
   - Google Gemini API (유료, 중간)
-  - OpenAI API (유료)
   - 취소 — STEP 3 처음으로
 
 #### Anthropic Claude (API 키 only)
@@ -436,7 +468,7 @@ AskUserQuestion: "어느 provider 직접 쓰시겠어요?"
  hermes config set PROVIDER anthropic
 ```
 
-모델 WebSearch → `hermes config set MODEL "anthropic/<선정 모델>"`.
+모델 WebSearch → `hermes config set MODEL "anthropic/<선정 모델>"` (예시 `anthropic/claude-opus-4.6` — 실제 최신은 WebSearch 로).
 
 #### Google Gemini (API 키)
 
@@ -451,37 +483,13 @@ AskUserQuestion: "어느 provider 직접 쓰시겠어요?"
 💡 AI Studio 에 free tier 있지만 제한적 — 업무용은 유료 권장.
 ```
 
-**주의: Hermes 가 Google provider 용 config 키명을 공식적으로 `GEMINI_API_KEY` 가 맞는지 `GOOGLE_API_KEY` 인지 확인 필요.** `WebSearch "site:hermes-agent.nousresearch.com Google Gemini env var {오늘의 YYYY-MM}"` 로 현재 정확한 키명 조회 후 설정.
-
-저장 (키명 WebSearch 결과에 따름):
+저장 (`GOOGLE_API_KEY` 가 공식 primary 이름, `GEMINI_API_KEY` 는 alias — 아무거나 하나):
 ```bash
- hermes config set <확인한 키명> [입력받은 키]
- hermes config set PROVIDER google
+ hermes config set GOOGLE_API_KEY [입력받은 키]
+ hermes config set PROVIDER gemini
 ```
 
-모델 WebSearch → `hermes config set MODEL "google/<선정 모델>"`.
-
-#### OpenAI (ChatGPT OAuth 안 쓰고 API 키로)
-
-브라우저 오픈 (규칙 패턴): `https://platform.openai.com/api-keys`
-
-```
-1. 로그인
-2. Billing 에서 카드 등록 + 최소 $5 선충전
-3. "Create new secret key" → 이름 → 생성
-4. sk-... 키 복사 (한 번만 표시)
-
-⚠️  토큰당 과금.
-💡 ChatGPT Plus/Pro 구독 있으면 선택 2(OAuth) 가 더 이득 — 이쪽은 구독과 별개 과금.
-```
-
-저장:
-```bash
- hermes config set OPENAI_API_KEY [입력받은 키]
- hermes config set PROVIDER openai
-```
-
-모델 WebSearch → `hermes config set MODEL "openai/<선정 모델>"`.
+모델 WebSearch → `hermes config set MODEL "gemini/<선정 모델>"`.
 
 ---
 
@@ -817,12 +825,14 @@ hermes gateway status
 | `hermes: command not found` | `export PATH="$HOME/.local/bin:$PATH"` 후 재시도 |
 | `curl: command not found` | `sudo apt install curl` (Linux) / Xcode tools (Mac) |
 | API 키 오류 | `hermes doctor` → 키 재확인. config 키 이름이 **대문자**인지 확인 |
+| `Unknown provider` / `Provider not found` | provider 값이 공식 목록에 있는지 확인 (`openai`, `google`, `codex` 전부 오답 — `openrouter` / `gemini` / `openai-codex` 가 맞음) |
 | `out of extra usage` (Anthropic) | Claude OAuth 쓰지 말 것. `hermes config set ANTHROPIC_API_KEY` 로 API 키 전환 |
 | 게이트웨이 연결 실패 | `hermes gateway setup` 다시, Discord Intent ON 확인 |
 | OpenRouter `Insufficient credits` | 유료 모델 사용 중. STEP 3 선택 1 로 돌아가 `:free` 모델 재조회 후 `MODEL` 재설정 |
 | 특정 모델 404 / discontinued | `WebSearch` 로 최신 모델 재조회 후 교체 |
 | 브라우저 자동 오픈 실패 | 규칙 패턴의 echo 안내대로 URL 직접 복사 |
-| Python 버전 오류 | `uv python install 3.11` |
+| Python 버전 오류 | Hermes 는 Python **3.11+** 필요. `uv python install 3.11 && uv python pin 3.11` |
+| 수동 설정 막혔을 때 | `hermes setup` 공식 wizard 로 완전 재설정 (모든 단계 인터랙티브) |
 
 에러 발생 시 사용자에게 에러 메시지 보여달라고 하고 위 표 참조.
 해결 안 되면 `hermes doctor` 출력 기반 진단.
