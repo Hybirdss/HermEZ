@@ -127,7 +127,6 @@ URL 을 열 때 아래 **한 줄 패턴**을 사용한다 (`[URL]` 만 치환):
 | `IS_WSL=1` | Linux/WSL2 경로로 자동 진행 |
 | Linux (WSL 아님, `DISPLAY` 있음) | Linux 경로 자동 진행 |
 | Linux (`DISPLAY` 없음) + SSH 감지 | 서버 환경 — 메신저 연동 단계에서 원격 URL 출력 모드 |
-| Termux 경로 감지 (`$PREFIX/com.termux` 존재) | Android 경로 자동 진행 |
 | 위 어느 것도 명확하지 않을 때만 | AskUserQuestion 으로 직접 질문 |
 
 감지가 확실하면 다음 블록을 사용자에게 출력하고 STEP 2 로 진행:
@@ -144,7 +143,6 @@ URL 을 열 때 아래 **한 줄 패턴**을 사용한다 (`[URL]` 만 치환):
   - Mac (추천) — 바로 설치 가능
   - Linux / WSL2 — 바로 설치 가능
   - Windows (WSL2 없음) — WSL2 먼저 설치 (5분, 자동)
-  - Android (Termux) — Termux 앱 필요
 ```
 
 ### Windows 선택 시 → WSL2 필수
@@ -176,25 +174,6 @@ AskUserQuestion: "WSL2 Ubuntu 터미널이 열려있나요?"
   - 아직 설치 중 — 완료되면 알려달라고 안내
   - 이미 WSL2 있어요 — 다음
 
-### Android 선택 시
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  Android → Termux 설치                                   │
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│  1. F-Droid 에서 Termux 설치                             │
-│     (Play Store 버전은 구버전이라 안 됨)                 │
-│     https://f-droid.org → "Termux" 검색                 │
-│                                                         │
-│  2. Termux 열고 아래 실행:                               │
-│     pkg update && pkg upgrade                           │
-│                                                         │
-│  3. 완료되면 다음 단계                                   │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
-```
-
 ---
 
 ## STEP 2 — 설치
@@ -208,7 +187,7 @@ AskUserQuestion: "WSL2 Ubuntu 터미널이 열려있나요?"
 └─────────────────────────────────────────────────────────┘
 ```
 
-실행 (Android 는 자동으로 `.[termux]` extra 적용):
+실행:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
 ```
