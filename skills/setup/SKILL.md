@@ -150,12 +150,15 @@ URL 을 열 때 아래 **한 줄 패턴**을 사용한다 (`[URL]` 만 치환):
 
 | 감지 결과 | 분기 |
 |----------|-----|
-| `IS_WSL=1` | STEP 1 OS 선택 자동으로 "Linux / WSL2" 로 건너뛰기 (묻지 말 것) |
-| `uname -s` = `Darwin` | STEP 1 OS 선택 자동으로 "Mac" 으로 건너뛰기 |
+| `IS_WSL=1` | STEP 1 OS 선택 자동으로 "Linux / WSL2" 경로 (사용자에게 묻지 않음) |
+| `uname -s` = `Darwin` | STEP 1 "Mac" 경로 자동 |
+| Windows PowerShell (이 SKILL.md 는 bash 기반이라 STEP 0 이 처음부터 안 돌 수도) | 사용자에게 "PowerShell 에서 이 명령 실행하세요" 안내: `irm https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.ps1 \| iex` — 설치 후 `hermes` 로 돌아오기 |
 | `~/.hermes 존재` | "기존 설치 감지. 새로 설치 / 재설정 / 업데이트?" 묻기 |
 | `Codex CLI 인증 존재` | STEP 3 선택 2(ChatGPT OAuth) 에서 자동 import 제안 |
 | `hermes` 이미 설치 + 버전 최신 | STEP 2 설치 스킵, STEP 3 로 점프 |
 | `curl 없음` | STEP 2 전에 curl 먼저 설치 안내 |
+| `uv 없음` | install.sh 가 자동 설치 시도 — 실패 시 `curl -LsSf https://astral.sh/uv/install.sh \| sh` 수동 |
+| Python 버전 < 3.10 | `uv python install 3.11 && uv python pin 3.11` |
 | `Home 여유 < 2G` | 경고 출력 후 계속 |
 | `github.com: 000` 또는 unreachable | 네트워크 경고, 프록시 사용 여부 질문 |
 
@@ -196,10 +199,33 @@ URL 을 열 때 아래 **한 줄 패턴**을 사용한다 (`[URL]` 만 치환):
   - Windows (WSL2 없음) — WSL2 먼저 설치 (5분, 자동)
 ```
 
-### Windows 선택 시 → WSL2 필수
+### Windows 선택 시 → 두 경로 지원
 
-Hermes 는 **Windows 네이티브 미지원** (공식 확인). WSL2 설치:
+**공식 `install.ps1` 존재 → Windows 네이티브 완전 지원.** WSL2 는 선택사항.
 
+AskUserQuestion:
+```
+질문: "Windows 에서 어느 쪽으로 갈까요?"
+선택지:
+  - 🪟 네이티브 PowerShell (가장 빠름, Recommended)  — install.ps1 자동 설치
+  - 🐧 WSL2 Ubuntu                                    — Linux 도구 선호 시
+  - 이미 WSL2 있어요                                  — WSL2 경로로
+```
+
+#### 네이티브 PowerShell 선택 시
+
+설치 환경 조건:
+- Python/uv/Git 없어도 OK — install.ps1 이 자동 설치 (uv 로 Python 3.11 자동, 관리자 권한 불필요)
+- `$env:LOCALAPPDATA\hermes` 에 설치됨
+
+STEP 2 에서 아래 명령 실행 예정:
+```powershell
+irm https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.ps1 | iex
+```
+
+#### WSL2 선택 시 (또는 이미 있음)
+
+WSL2 설치 안내 (이미 있으면 스킵):
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  Windows → WSL2 설치 (5분)                              │
@@ -213,7 +239,7 @@ Hermes 는 **Windows 네이티브 미지원** (공식 확인). WSL2 설치:
 │                                                         │
 │  4. 컴퓨터 재시작                                        │
 │  5. 재시작 후 Ubuntu 창이 자동으로 열림                   │
-│  6. 사용자이름/비밀번호 설정 (뭐든 상관없음)              │
+│  6. 사용자이름/비밀번호 설정                              │
 │  7. 그 Ubuntu 터미널 창에서 계속 진행                     │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
@@ -233,33 +259,52 @@ AskUserQuestion: "WSL2 Ubuntu 터미널이 열려있나요?"
 ┌─────────────────────────────────────────────────────────┐
 │  설치 중... (보통 2~5분)                                 │
 │                                                         │
-│  Python, Node.js, hermes-agent, 브라우저 도구            │
+│  Python 3.11, Node 22, uv, hermes-agent                 │
 │  → 공식 설치 스크립트가 알아서 다 해줍니다.              │
+│  (Python 없으면 uv 가 자동 설치 — 관리자 권한 불필요)    │
 └─────────────────────────────────────────────────────────┘
 ```
 
-실행:
+**중요 — `--skip-setup` 플래그 필수.** 공식 스크립트는 설치 끝에 대화형 `hermes setup` wizard 를 띄운다. 우리가 STEP 3 에서 직접 처리하므로 반드시 스킵.
+
+### Mac / Linux / WSL2
+
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash -s -- --skip-setup
 ```
+
+> **절대 `sudo` 로 실행 금지.** install.sh 는 `~/.local/bin` 사용자 영역에 설치. sudo 쓰면 권한 충돌로 실패 (공식 FAQ).
 
 설치 완료 후 shell reload:
 ```bash
 source ~/.bashrc 2>/dev/null || source ~/.zshrc 2>/dev/null || true
 ```
 
-확인:
+### Windows 네이티브 PowerShell
+
+```powershell
+irm https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.ps1 | iex
+```
+
+install.ps1 도 대화형 setup 을 띄우지만, 이후 새 PowerShell 창 열면 됨 (wizard 중간에 Ctrl+C 로 빠져나와도 설치 자체는 완료).
+
+### 확인 (공통)
+
 ```bash
 hermes version
 ```
 
 실패 시 PATH 문제:
-```bash
-export PATH="$HOME/.local/bin:$PATH"
-hermes version
-```
 
-그래도 실패하면 터미널 완전히 닫고 다시 열어달라고 안내.
+| OS | 명령 |
+|----|-----|
+| Mac/Linux/WSL2 | `export PATH="$HOME/.local/bin:$PATH"` |
+| Windows | PowerShell 완전히 닫고 새로 열기 (install.ps1 이 PATH 자동 업데이트함) |
+
+그래도 `hermes version` 실패 시:
+- uv 가 PATH 에 없을 수 있음 → `curl -LsSf https://astral.sh/uv/install.sh | sh` (Mac/Linux) 또는 `irm https://astral.sh/uv/install.ps1 | iex` (Windows)
+- 터미널 완전히 닫고 다시 열기
+- Python 3.10+ 버전 확인 (`python3 --version`) — Hermes 는 3.10+ 지원, 3.11 권장
 
 > **A+B 하이브리드 전략.** Hermes 는 `hermes setup` 공식 wizard 를 제공. 우리 SKILL.md 는 각 STEP 에서 **자동 주 경로 (`hermes config set model.provider ...`) + 대화형 폴백 (`hermes setup [section]`)** 두 가지를 준비. Claude 가 자동 경로 먼저 시도하고 실패 감지 시 대화형으로 전환. 대화형 화면은 Claude 가 한국어로 실시간 해설한다.
 > 공식 setup 서브커맨드: `hermes setup [model|tts|terminal|gateway|tools|agent]`.
@@ -912,17 +957,25 @@ hermes gateway status
 
 | 에러 | 조치 |
 |------|------|
-| `hermes: command not found` | `export PATH="$HOME/.local/bin:$PATH"` 후 재시도 |
+| `hermes: command not found` | Mac/Linux: `export PATH="$HOME/.local/bin:$PATH"`. Windows: PowerShell 재시작 |
+| `uv: command not found` | Mac/Linux: `curl -LsSf https://astral.sh/uv/install.sh \| sh` · Windows: `irm https://astral.sh/uv/install.ps1 \| iex` |
 | `curl: command not found` | `sudo apt install curl` (Linux) / Xcode tools (Mac) |
-| API 키 오류 | `hermes doctor` → 키 재확인. config 키 이름이 **대문자**인지 확인 |
-| `Unknown provider` / `Provider not found` | provider 값이 공식 목록에 있는지 확인 (`openai`, `google`, `codex` 전부 오답 — `openrouter` / `gemini` / `openai-codex` 가 맞음) |
+| install.sh 가 `sudo` 로 실행됐음 | 중단. `rm -rf ~/.hermes` 후 **sudo 없이** 재실행 (공식 FAQ). `~/.local/bin` 은 사용자 영역 |
+| API 키 오류 | `hermes doctor` → 키 재확인. env var 이름 **대문자**, 설정 값은 **점 표기법** |
+| `Unknown provider` / `Provider not found` | provider 값이 공식 목록에 있는지 확인 (`openai`, `google`, `codex` 전부 오답 — `openrouter` / `gemini` / `openai-codex`) |
+| `PROVIDER` / `MODEL` 대문자 key 안 먹힘 | 점 표기법으로 재설정: `hermes config set model.provider X` / `model.default X` |
 | `out of extra usage` (Anthropic) | Claude OAuth 쓰지 말 것. `hermes config set ANTHROPIC_API_KEY` 로 API 키 전환 |
+| `preparing <tool>...` 에서 stall (#10364) | Ctrl+C 로 세션 종료 후 `/new` 로 재시작. 반복 시 `hermes update` |
+| `/model` picker 중복 (#9545) | 무시. 동일 provider 가 Built-in/User-defined/Compat 으로 3중 표시되는 알려진 버그 — 아무거나 선택 OK |
+| Discord `/sethome` 이 동작 이상 (#6447) | config.yaml 에 channel ID 가 잘못 저장될 수 있음. `~/.hermes/config.yaml` 의 해당 엔트리를 `~/.hermes/.env` 로 수동 이동 (`DISCORD_HOME_CHANNEL=...`) |
 | 게이트웨이 연결 실패 | `hermes gateway setup` 다시, Discord Intent ON 확인 |
 | OpenRouter `Insufficient credits` | 유료 모델 사용 중. STEP 3 선택 1 로 돌아가 `:free` 모델 재조회 후 `model.default` 재설정 |
 | 특정 모델 404 / discontinued | `WebSearch` 로 최신 모델 재조회 후 교체 |
+| 컨텍스트 감지 오류 (`context exceeded` 너무 빨리) | `~/.hermes/config.yaml` 에 `model.context_length: <숫자>` 수동 설정 |
 | 브라우저 자동 오픈 실패 | 규칙 패턴의 echo 안내대로 URL 직접 복사 |
-| Python 버전 오류 | Hermes 는 Python **3.11+** 필요. `uv python install 3.11 && uv python pin 3.11` |
-| 수동 설정 막혔을 때 | `hermes setup` 공식 wizard 로 완전 재설정 (모든 단계 인터랙티브) |
+| Python 버전 오류 | Hermes 는 Python **3.10+** 지원, **3.11 권장**. `uv python install 3.11 && uv python pin 3.11` |
+| `/model` 이 새 provider 전환 안 됨 | 세션 종료 후 터미널에서 `hermes model` 재실행 (공식 FAQ — `/model` 은 이미 설정된 provider 만 보임) |
+| 수동 설정 막혔을 때 | `hermes setup` 공식 wizard 로 완전 재설정 (모든 단계 인터랙티브, Claude 가 한국어 해설) |
 
 에러 발생 시 사용자에게 에러 메시지 보여달라고 하고 위 표 참조.
 해결 안 되면 `hermes doctor` 출력 기반 진단.
@@ -936,3 +989,15 @@ hermes gateway status
 - [ ] config 저장 후 `~/.hermes/.env` 퍼미션 확인 (hermes 가 자동 600)
 - [ ] 메신저 봇 토큰은 절대 공유 금지 (`Reset Token` 으로 재발급 가능)
 - [ ] Anthropic OAuth 경로 사용 금지 (API 키만)
+- [ ] install.sh 를 **sudo 로 실행하지 말 것** — `~/.local/bin` 에 설치되므로 사용자 권한으로 충분. sudo 쓰면 파일 소유권 충돌로 hermes 실행 실패
+
+## 알려진 버그 & 주의사항 (공식 이슈 트래커)
+
+| 이슈 | 증상 | 회피 |
+|-----|-----|-----|
+| [#6447](https://github.com/NousResearch/hermes-agent/issues/6447) | Discord `/sethome` 이 channel ID 를 `config.yaml` 에 잘못 저장 | 수동으로 `~/.hermes/.env` 에 `DISCORD_HOME_CHANNEL=<id>` 로 이동 |
+| [#9545](https://github.com/NousResearch/hermes-agent/issues/9545) | `/model` picker 에 같은 provider 3중 표시 (Built-in, User-defined, Compat) | 아무거나 선택 OK. cosmetic |
+| [#10364](https://github.com/NousResearch/hermes-agent/issues/10364) | Agent 가 `preparing <tool>...` 에서 stall | Ctrl+C → `/new` 로 재시작. 반복되면 `hermes update` |
+| [#10688](https://github.com/NousResearch/hermes-agent/issues/10688) | Slack gateway 에서 `/model` 이 provider 스위치 못함 | 터미널에서 `hermes model` 로 직접 변경 후 gateway 재시작 |
+
+STEP 5 자가 치유 루프가 위 이슈들을 자동으로 인식해서 대응한다.
