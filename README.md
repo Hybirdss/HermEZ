@@ -1,6 +1,6 @@
 <img src="./banner.svg" width="100%" alt="HermEZ"/>
 
-**헤르메스를 험...이지로 바꿔줍니다.**
+**헤르메스를 흠... EZ로 바꿔줍니다.**
 
 ```bash
 git clone https://github.com/Hybirdss/HermEZ && cd HermEZ && claude .
