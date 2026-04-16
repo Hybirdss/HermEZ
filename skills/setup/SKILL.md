@@ -993,6 +993,277 @@ hermes dump --show-keys
 
 ---
 
+## STEP 6 — 파워 유저 기능 (선택)
+
+기본 설치는 완료. 아래는 "더 강하게 쓰고 싶으면" 추가로 켤 수 있는 기능들. **모두 선택.** 관심 없으면 0번 골라 끝내면 됨.
+
+### 6-A. 안내 출력
+
+먼저 아래 아스키 블록을 그대로 출력:
+
+```
+╔══════════════════════════════════════════════════════════════════╗
+║                                                                  ║
+║         🎁   설치 완료 — 이런 것도 더 할 수 있어요               ║
+║                                                                  ║
+╠══════════════════════════════════════════════════════════════════╣
+║                                                                  ║
+║  [1] 📱  메신저 더 연결하기                                       ║
+║     Slack · WhatsApp · Signal · Email · iMessage · Matrix 등    ║
+║     ✓  총 16개 플랫폼 지원. 하나의 Hermes 를 여러 채널에서 사용  ║
+║     ⚠  비용: 메시지 주고받을 때만 토큰. 대기 중엔 0원            ║
+║                                                                  ║
+║  [2] 🧩  스킬 자동 설치 (Skills Hub)                             ║
+║     번역 · 요약 · 뉴스 수집 · 일정 관리 등 추천 스킬 일괄 설치   ║
+║     ✓  말 한마디로 복잡한 작업 (예: "오늘 뉴스 요약해줘")         ║
+║     ⚠  비용: 스킬 호출할 때만 토큰. 대기 중엔 0원                ║
+║                                                                  ║
+║  [3] 🔌  외부 도구 연결 (MCP 서버)                               ║
+║     Playwright (브라우저) · Filesystem · GitHub · Brave 검색 등 ║
+║     ✓  AI 가 브라우저 조작, 파일 관리, 코드 검색 직접 가능        ║
+║     ⚠  비용: 도구 호출할 때만 토큰. 대기 중엔 0원                ║
+║                                                                  ║
+║  [4] ⏰  자동화 (Cron) ★ 주의 필요                               ║
+║     "매일 9시 뉴스 요약해서 텔레그램으로" 같은 예약 작업          ║
+║     ✓  자동 알림, 요약, 일일 리포트 등                            ║
+║     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━      ║
+║     ⚠️   비용 경고                                                ║
+║     •  실행할 때마다 AI 호출 → 토큰 소모                          ║
+║     •  OAuth (ChatGPT Plus / Claude OAuth 금지 · Nous) →         ║
+║         구독 한도 안에서 사용. 추가 돈 X                          ║
+║     •  API 키 (Anthropic / Gemini / OpenAI 유료) →                ║
+║         실행 횟수 × 토큰 수 만큼 실제 돈 나감                     ║
+║     •  OpenRouter :free → 하루 50회 한도 공유 — 초과 시 실패      ║
+║     •  설정 시 최소 간격 1시간, 하루 24회 이하 권장               ║
+║     끄는 법:  hermes cron pause <id>  /  remove <id>             ║
+║     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━      ║
+║                                                                  ║
+║  [5] 💓  주기적 상태 모니터링 (Heartbeat)                        ║
+║     "30분마다 서버 체크하고 이상하면 알림" 같은 상시 감시          ║
+║     ✓  다운·에러 자동 감지                                        ║
+║     ⚠️   Cron 과 동일한 비용 구조 (API 키면 돈 나감)              ║
+║     끄는 법:  hermes cron remove <id>                            ║
+║                                                                  ║
+║  [6] 📊  웹 대시보드 지금 열기                                    ║
+║     http://localhost:9119 에 GUI 띄우기                          ║
+║     ✓  브라우저로 세션·설정·스킬·게이트웨이 관리                  ║
+║     ⚠  비용 0. 로컬에서만 돕니다.                                 ║
+║                                                                  ║
+║  [7] 👤  프로필 분리 — 업무용 / 개인용                           ║
+║     같은 컴퓨터에서 여러 Hermes 동시 운영                         ║
+║     ✓  회사 vs 개인 데이터·모델·키 완전 분리                      ║
+║     ⚠  비용 0. 설정만 따로 저장.                                  ║
+║                                                                  ║
+║  [0] 🔕  지금은 충분, 나중에                                      ║
+║                                                                  ║
+╠══════════════════════════════════════════════════════════════════╣
+║  💡  나중에 "이거 그만 받을래" 라고 말하시면 제가 꺼드립니다.     ║
+║      비용 걱정되면 언제든 말씀하세요.                              ║
+╚══════════════════════════════════════════════════════════════════╝
+```
+
+### 6-B. 선택지 질문
+
+AskUserQuestion (multiSelect=true, 최대 4개까지 한 번에 노출):
+
+```
+질문: "어떤 기능을 켤까요? (여러 개 선택 가능)"
+선택지 (1차):
+  - 📱 메신저 더 추가
+  - 🧩 스킬 자동 설치
+  - 🔌 MCP 서버 연결
+  - ⏰ 자동화 / Cron (비용 주의)
+```
+
+사용자가 "0번 나중에" 원하면 Other 로 "지금은 충분" 받아서 종료.
+
+[5] Heartbeat, [6] 대시보드, [7] 프로필은 첫 질문에서 빠지는 경우 두 번째 질문으로:
+```
+질문: "이건 어떠세요?"
+선택지:
+  - 💓 상태 모니터링 (비용 주의)
+  - 📊 웹 대시보드 지금 열기
+  - 👤 프로필 분리
+  - 🔕 됐어요
+```
+
+---
+
+### 6-C. 각 기능 세부 진행
+
+#### [1] 메신저 더 추가
+
+**공식 지원 16개 플랫폼** (2026-04 기준): Telegram · Discord · Slack · WhatsApp · Signal · SMS · Email · Matrix · iMessage(BlueBubbles) · WeChat · Home Assistant · Mattermost · DingTalk · Feishu/Lark · WeCom · Webhook
+
+추가할 플랫폼 물어본 뒤 공통 명령:
+```bash
+hermes gateway setup
+```
+대화형 화면에서 원하는 플랫폼만 켜고 토큰 입력. Claude 가 각 화면을 한국어로 해설.
+
+플랫폼별 특수사항:
+- **Slack** — workspace app 으로 설치, Bot Token + App Token 2개 필요
+- **WhatsApp** — `hermes whatsapp` 명령으로 QR 페어링
+- **Signal** — `signal-cli` 또는 Signal relay 설정 필요
+- **Email** — IMAP/SMTP 자격증명 + 발신 주소
+
+#### [2] 스킬 자동 설치 (Skills Hub)
+
+```bash
+hermes skills browse              # 전체 스킬 목록 + 검색
+hermes skills install <name>      # 개별 설치
+hermes skills list                # 현재 설치된 것
+```
+
+Claude 가 사용자 목적 묻고 (`"업무·개발·일상 중 어느 쪽?"`) 맞는 스킬 제안. `browse` 출력 파싱해서 3~5개 추천 → 일괄 `install`.
+
+추천 예시 카테고리:
+- **개발자**: github-ops, pr-reviewer, code-search
+- **일반**: daily-summary, translator, calendar-sync
+- **크리에이터**: note-organizer, blog-draft
+
+#### [3] MCP 서버 연결
+
+인기 MCP 서버 자동 제안 (Claude 가 `WebSearch "top MCP servers {YYYY-MM}"` 로 최신 목록 확인):
+- **Playwright** — 브라우저 자동화
+- **Filesystem** — 파일 읽기·쓰기
+- **GitHub** — 레포 조작, PR, 이슈
+- **Brave Search** — 웹 검색
+- **Context7** — 라이브러리 문서
+
+명령:
+```bash
+hermes mcp add <name>             # discovery-first 설치
+hermes mcp test <name>            # 연결 테스트
+hermes mcp list
+```
+
+추가 후 `hermes doctor` 로 검증.
+
+#### [4] 자동화 / Cron ★ 비용 주의
+
+**먼저 현재 provider 확인:**
+```bash
+hermes config get model.provider
+```
+
+결과별 메시지:
+| provider | Claude 가 할 말 |
+|---------|---------------|
+| `openai-codex` / `nous` / `copilot` | "✓ OAuth 기반. 구독 한도 안에서 실행되니 추가 돈은 안 나감. 단 rate limit 있음." |
+| `anthropic` / `gemini` | "⚠️  API 직과금. 매 실행마다 실제 돈 나감. 예상 비용 계산해드릴게요." |
+| `openrouter` + `:free` 모델 | "💡 무료 모델. 하루 50회 / 분당 20회 제한. 초과하면 cron 실패." |
+| `openrouter` + 유료 모델 | "⚠️  유료 모델. 토큰당 과금." |
+| `zai` / `kimi-*` / 기타 API | "⚠️  API 과금 가능." |
+
+**비용 예상 출력** (API 인 경우):
+```
+현재 모델: anthropic/claude-opus-4.6
+입력 단가: $X/M · 출력 단가: $Y/M (WebSearch 로 오늘 값 조회)
+요청당 예상 토큰: 입력 2K + 출력 1K = 약 $0.03
+하루 1회 실행 → 월 약 $1
+하루 24회 실행 → 월 약 $22
+```
+
+**최소 간격 강제:**
+- 기본: **1시간**
+- 사용자가 "매 5분" 요청 시 Claude 가 거부:
+  ```
+  ⚠️  최소 간격은 1시간입니다.
+  이유:
+    1. 매 실행마다 토큰 소모 (API 면 돈)
+    2. rate limit 위험 (OpenRouter free 는 하루 50회)
+    3. 대부분의 일상 자동화는 1시간이면 충분
+  15분 간격이 꼭 필요한 특별한 이유 있으시면 알려주세요.
+  (예: 긴급 모니터링 — 서버 다운 즉시 감지)
+  ```
+- 예외: 사용자가 이유 대면 최소 15분까지 허용. 5분 미만은 거부.
+
+**하루 실행 횟수:**
+- 24회 이하 권장
+- 초과 시 경고: "하루 X회는 월 $Y 예상. 괜찮으세요?"
+
+**생성 흐름:**
+1. 사용자 자연어 입력 (예: "매일 아침 9시에 HN 뉴스 요약해서 텔레그램으로")
+2. Claude 가 해석:
+   ```
+   스케줄: 매일 09:00 (cron: 0 9 * * *)
+   작업: HN top stories 요약
+   전달: Telegram
+   예상 비용: 하루 1회 × $0.03 = 월 $1 (API 기준)
+   ```
+3. 사용자 승인 받기
+4. 생성:
+   ```bash
+   hermes cron create "0 9 * * *" "HN top 10 요약해서 간결히 정리" \
+     --name "daily-hn" \
+     --deliver telegram
+   ```
+
+**비활성화 안내 (반드시 출력):**
+```
+이 자동화 끄고 싶을 때:
+  hermes cron list              # 목록 + ID 확인
+  hermes cron pause <id>        # 일시정지
+  hermes cron remove <id>       # 영구 삭제
+
+저한테 "daily-hn 끄고 싶어" 라고 말씀만 하셔도 돼요.
+```
+
+#### [5] Heartbeat / 상태 모니터링
+
+Cron 과 동일 구조 + 주기 최소 **30분** (서버 모니터링 용도).
+
+생성 예:
+```bash
+hermes cron create "every 30m" "홈 서버 헬스체크. 다운이면 알림" \
+  --name "heartbeat-home" \
+  --deliver telegram
+```
+
+비용 경고 + 비활성화 방법 Cron 과 동일하게 출력.
+
+#### [6] 웹 대시보드 지금 열기
+
+```bash
+hermes dashboard
+```
+
+(기본 포트 9119, 자동 브라우저 오픈)
+
+사용자에게: "브라우저가 열렸습니다. 모든 설정을 여기서 GUI 로 관리할 수 있어요."
+
+#### [7] 프로필 분리
+
+```bash
+hermes profile list
+hermes profile create work     # 업무용 새 프로필
+hermes profile use work        # 이 프로필로 전환
+hermes profile alias work      # 'hermes-work' 래퍼 스크립트 생성
+```
+
+이제 `hermes-work` 는 업무용, `hermes` 는 개인용으로 분리. 각각 다른 키·모델·스킬.
+
+### 6-D. 완료 후 안내 (반드시 마지막에 출력)
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  👂  언제든 저한테 말씀하세요                             │
+│                                                          │
+│  "그 자동화 그만해"    → cron 삭제해드림                  │
+│  "대시보드 열어"       → hermes dashboard 실행            │
+│  "이번 달 얼마 썼어?"  → hermes insights 로 사용량 확인   │
+│  "메신저 하나 더 추가" → gateway setup 로 재진입          │
+│                                                          │
+│  특히 API 키 쓰실 때:                                    │
+│  •  너무 자주 실행되는 작업은 돈 나갑니다                │
+│  •  이상하다 싶으면 'cron 확인해줘' 라고 하세요           │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## Hermes 전체 명령 치트시트 (설치 후 참고용)
 
 Claude 가 사용자에게 "더 이런 것들도 있어요" 로 제시할 수 있는 공식 명령들. `hermes_cli/main.py` 직독 기반.
