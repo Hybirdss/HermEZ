@@ -145,29 +145,90 @@ hermes version
 
 ### 없음 선택 시 → OpenRouter 무료 가이드
 
+아래 명령으로 브라우저에서 OpenRouter 키 발급 페이지를 바로 연다:
+
+```bash
+open "https://openrouter.ai/keys" 2>/dev/null || \
+xdg-open "https://openrouter.ai/keys" 2>/dev/null || \
+powershell.exe /c start "https://openrouter.ai/keys" 2>/dev/null || true
+```
+
+브라우저가 열리면 아래 안내를 출력한다:
+
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  OpenRouter — 무료로 시작하기 (5분)                      │
+│  브라우저가 열렸습니다. 아래 순서대로 따라해 주세요.      │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
-│  1. https://openrouter.ai 접속                          │
-│  2. "Sign In" → Google 계정으로 가입                     │
-│  3. 우측 상단 프로필 → "Keys"                            │
-│  4. "Create Key" 클릭                                    │
-│  5. 이름 아무거나 입력 → "Create"                        │
-│  6. sk-or-v1-... 로 시작하는 키 복사                     │
+│  1. 우측 상단 "Sign In" 클릭                             │
+│     → Google 계정으로 로그인 (가장 쉬움)                 │
 │                                                         │
-│  💡 무료 모델: google/gemini-2.0-flash-001              │
-│     가입만 하면 바로 사용 (카드 불필요)                   │
+│  2. 로그인 후 우측 상단 프로필 아이콘 클릭               │
+│     → 드롭다운에서 "Keys" 클릭                           │
+│                                                         │
+│  3. 파란 "Create Key" 버튼 클릭                          │
+│     → Name: 아무거나 입력 (예: hermes)                   │
+│     → Limit: 비워두기 (무제한)                           │
+│     → 파란 "Create" 버튼 클릭                            │
+│                                                         │
+│  4. sk-or-v1- 로 시작하는 키가 나타남                    │
+│     → 오른쪽 복사 아이콘 클릭해서 복사                   │
+│     ⚠️  이 창 닫으면 키를 다시 볼 수 없습니다!           │
+│                                                         │
+│  💡 카드 등록 없이 무료 모델 바로 사용 가능합니다.        │
+│     무료 추천: google/gemini-2.0-flash-001              │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
 
-AskUserQuestion: "OpenRouter 키를 발급받으셨나요?"
+AskUserQuestion: "OpenRouter 키를 복사하셨나요?"
 선택지:
-  - 네, 키 받았어요 — 다음
-  - 카드 입력 없이 쓸 수 있나요? — 설명 (무료 모델은 카드 불필요)
+  - 네, 복사했어요 — 키 입력 단계로
+  - 로그인이 안 돼요 — "Google 계정 로그인 버튼을 눌러주세요. 기존 Google 계정 있으면 바로 됩니다." 안내
+  - 카드 없이 정말 무료인가요? — "네, 무료 모델은 카드 없이 됩니다. Create Key 후 바로 사용 가능합니다." 안내
   - 다른 방법 원해요 — Anthropic/OpenAI 안내
+
+### Anthropic 선택 시
+
+```bash
+open "https://console.anthropic.com/settings/keys" 2>/dev/null || \
+xdg-open "https://console.anthropic.com/settings/keys" 2>/dev/null || \
+powershell.exe /c start "https://console.anthropic.com/settings/keys" 2>/dev/null || true
+```
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Anthropic API 키 발급                                   │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  1. 브라우저에서 로그인 (없으면 회원가입)                 │
+│  2. "Create Key" 클릭                                    │
+│  3. sk-ant- 로 시작하는 키 복사                          │
+│  ⚠️  유료 (카드 등록 필요, $5부터 충전)                  │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+### OpenAI 선택 시
+
+```bash
+open "https://platform.openai.com/api-keys" 2>/dev/null || \
+xdg-open "https://platform.openai.com/api-keys" 2>/dev/null || \
+powershell.exe /c start "https://platform.openai.com/api-keys" 2>/dev/null || true
+```
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  OpenAI API 키 발급                                      │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  1. 브라우저에서 로그인                                   │
+│  2. "+ Create new secret key" 클릭                      │
+│  3. sk- 로 시작하는 키 복사                              │
+│  ⚠️  유료 (카드 등록 필요)                               │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
 
 ### 키 입력 단계
 
@@ -245,29 +306,80 @@ AskUserQuestion: "메신저 연동을 설정할까요?"
 
 ### Telegram 연동 흐름
 
+먼저 BotFather 링크를 브라우저로 연다 (Telegram 앱이 설치돼 있으면 앱으로 열림):
+
+```bash
+open "https://t.me/BotFather" 2>/dev/null || \
+xdg-open "https://t.me/BotFather" 2>/dev/null || \
+powershell.exe /c start "https://t.me/BotFather" 2>/dev/null || true
+```
+
+아래 안내를 출력한다:
+
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  Telegram 봇 만들기 (3분)                                │
+│  [1/2]  봇 만들기 — BotFather 에서 진행                  │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
-│  1. Telegram 앱 열기                                     │
-│  2. 검색창에 @BotFather 검색 → 파란 체크 있는 거 선택     │
-│  3. /newbot 입력 (슬래시 포함)                           │
-│  4. 봇 이름 입력 (아무거나, 예: "내 AI 비서")            │
-│  5. 봇 아이디 입력 (영어+bot으로 끝나야 함, 예: myai_bot)│
-│  6. 토큰 받음: 1234567890:ABCdef... 형태                  │
-│     → 이 토큰을 복사해두기                               │
+│  BotFather = Telegram 공식 봇 관리자입니다.              │
+│  파란 체크(✓)가 있는 계정이 진짜입니다.                  │
 │                                                         │
-│  내 Telegram ID 확인:                                    │
-│  7. @userinfobot 검색 → /start 입력                     │
-│  8. 숫자로 된 ID 확인 (예: 123456789)                    │
+│  채팅창에 아래를 순서대로 입력하세요:                     │
+│                                                         │
+│  Step 1. /newbot  (그대로 입력)                          │
+│                                                         │
+│  Step 2. 봇 이름 입력                                    │
+│          예시: 내 AI 비서                                │
+│          (한글 가능, 뭐든 상관없음)                      │
+│                                                         │
+│  Step 3. 봇 아이디 입력                                  │
+│          규칙: 영어만, 반드시 bot으로 끝나야 함           │
+│          예시: myhermes_bot                              │
+│          (이미 있으면 다른 이름으로)                      │
+│                                                         │
+│  완료되면 아래 형태의 토큰이 나타납니다:                  │
+│  1234567890:ABCdefGHIjklMNOpqrSTUvwxYZ                  │
+│  → 이 줄 전체를 복사해두세요                             │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
 
-AskUserQuestion으로 두 가지를 받는다:
-1. "BotFather에서 받은 봇 토큰을 입력해주세요" (Other로 직접 입력)
-2. "@userinfobot에서 확인한 내 Telegram ID를 입력해주세요" (Other로 직접 입력)
+AskUserQuestion: "봇 토큰을 복사하셨나요?"
+선택지:
+  - 네, 토큰 복사했어요 — 다음 (내 ID 확인 단계)
+  - 이미 bot으로 끝나는 아이디가 있대요 — "다른 이름 뒤에 _bot 붙여서 다시 시도해보세요. 예: myhermes2_bot" 안내
+  - BotFather를 못 찾겠어요 — "Telegram 검색창에 @BotFather 입력, 파란 체크 있는 것 선택" 재안내
+
+다음으로 userinfobot 링크를 연다:
+
+```bash
+open "https://t.me/userinfobot" 2>/dev/null || \
+xdg-open "https://t.me/userinfobot" 2>/dev/null || \
+powershell.exe /c start "https://t.me/userinfobot" 2>/dev/null || true
+```
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  [2/2]  내 Telegram ID 확인                              │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  방금 열린 @userinfobot 채팅에서:                        │
+│                                                         │
+│  /start  입력 (또는 Start 버튼 클릭)                     │
+│                                                         │
+│  그러면 이렇게 나옵니다:                                  │
+│  Id: 123456789                                          │
+│  First: 홍                                              │
+│  Last: 길동                                             │
+│                                                         │
+│  "Id:" 뒤의 숫자만 복사하세요 (예: 123456789)            │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+AskUserQuestion으로 두 가지를 순서대로 받는다:
+1. "BotFather에서 받은 봇 토큰을 붙여넣어 주세요" (Other로 직접 입력)
+2. "@userinfobot에서 확인한 숫자 ID를 입력해주세요" (Other로 직접 입력)
 
 받은 값으로 실행:
 ```bash
@@ -293,42 +405,96 @@ Telegram에서 자신이 만든 봇에게 메시지를 보내보세요.
 
 ### Discord 연동 흐름
 
+Discord 개발자 포털을 바로 연다:
+
+```bash
+open "https://discord.com/developers/applications" 2>/dev/null || \
+xdg-open "https://discord.com/developers/applications" 2>/dev/null || \
+powershell.exe /c start "https://discord.com/developers/applications" 2>/dev/null || true
+```
+
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  Discord 봇 만들기 (5분)                                 │
+│  [1/3]  봇 앱 만들기                                     │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
-│  1. https://discord.com/developers/applications 접속     │
-│  2. "New Application" → 이름 입력 → "Create"            │
-│  3. 왼쪽 메뉴 "Bot" 클릭                                 │
-│  4. "Add Bot" → "Yes, do it!"                           │
+│  브라우저에서 Discord 계정으로 로그인 후:                 │
 │                                                         │
-│  ⚠️  여기가 핵심! 안 하면 봇이 먹통됩니다:               │
-│  5. "Privileged Gateway Intents" 아래에서               │
-│     → MESSAGE CONTENT INTENT 를 ON으로 켜기             │
-│     → SERVER MEMBERS INTENT 도 ON으로 켜기              │
-│  6. "Save Changes" 클릭                                  │
+│  1. 우측 상단 파란 "New Application" 버튼 클릭           │
+│  2. 이름 입력 (예: HermEZ)                               │
+│  3. 체크박스 체크 → "Create" 클릭                        │
 │                                                         │
-│  봇 토큰 얻기:                                           │
-│  7. "Reset Token" → "Yes, do it!" → 토큰 복사           │
+│  4. 왼쪽 메뉴에서 "Bot" 클릭                             │
 │                                                         │
-│  봇 서버에 초대:                                         │
-│  8. 왼쪽 메뉴 "OAuth2" → "URL Generator"                │
-│  9. SCOPES: bot 체크                                     │
-│  10. BOT PERMISSIONS: Send Messages, Read Message       │
-│      History, Attach Files, View Channels 체크          │
-│  11. 생성된 URL 복사 → 브라우저에서 열기 → 서버 선택      │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
+│  ⚠️  여기 안 하면 봇이 완전 먹통됩니다!                  │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
 │                                                         │
-│  내 Discord ID 얻기:                                     │
-│  12. Discord 설정(톱니바퀴) → 고급 → 개발자 모드 ON      │
-│  13. 내 프로필 우클릭 → "사용자 ID 복사"                 │
+│  5. 아래로 스크롤 → "Privileged Gateway Intents" 찾기    │
+│     ┌─────────────────────────────────────────────┐    │
+│     │  SERVER MEMBERS INTENT        [켜기 ●    ]  │    │
+│     │  MESSAGE CONTENT INTENT       [켜기 ●    ]  │    │
+│     └─────────────────────────────────────────────┘    │
+│     두 개 모두 오른쪽 토글 클릭해서 파란색으로 켜기       │
+│                                                         │
+│  6. 하단 "Save Changes" 클릭                             │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
 
-AskUserQuestion으로 두 가지를 받는다:
-1. "Discord 봇 토큰을 입력해주세요"
-2. "내 Discord 사용자 ID를 입력해주세요"
+AskUserQuestion: "Intent를 켰나요?"
+선택지:
+  - 네, 두 개 다 켰어요 — 다음 (토큰 발급)
+  - Privileged Gateway Intents가 안 보여요 — "Bot 메뉴에서 아래로 스크롤하면 나옵니다. TOKEN 섹션 아래에 있어요." 안내
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  [2/3]  봇 토큰 발급 + 서버 초대                         │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  토큰 발급:                                              │
+│  1. Bot 메뉴 상단 TOKEN 섹션에서 "Reset Token" 클릭      │
+│  2. "Yes, do it!" → 토큰 복사 (MTxxx... 형태)           │
+│     ⚠️  이 페이지 벗어나면 다시 볼 수 없습니다!          │
+│                                                         │
+│  서버 초대 URL 만들기:                                   │
+│  3. 왼쪽 메뉴 "OAuth2" → "URL Generator" 클릭           │
+│  4. SCOPES 에서 "bot" 체크                               │
+│  5. BOT PERMISSIONS 에서 아래 4개 체크:                  │
+│     ☑ View Channels                                     │
+│     ☑ Send Messages                                     │
+│     ☑ Read Message History                              │
+│     ☑ Attach Files                                      │
+│  6. 하단에 생성된 URL 복사                               │
+│  7. 새 탭에서 URL 열기 → 내 서버 선택 → "승인" 클릭      │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+AskUserQuestion: "토큰을 복사하고 봇을 서버에 초대했나요?"
+선택지:
+  - 네, 완료했어요 — 다음 (내 Discord ID)
+  - 서버가 없어요 — "Discord에서 + 버튼으로 새 서버 만든 후 초대하세요" 안내
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  [3/3]  내 Discord ID 확인                               │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  1. Discord 앱(또는 웹) 열기                             │
+│  2. 왼쪽 하단 톱니바퀴(⚙) 클릭 → 설정 열기              │
+│  3. 왼쪽 메뉴 "고급" 클릭                                │
+│  4. "개발자 모드" 토글 ON으로 켜기                       │
+│  5. 설정 닫기                                            │
+│  6. 좌측 하단 내 아이콘 우클릭 → "사용자 ID 복사"        │
+│     숫자 18자리가 복사됩니다 (예: 123456789012345678)    │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+AskUserQuestion으로 두 가지를 순서대로 받는다:
+1. "Discord 봇 토큰을 붙여넣어 주세요" (Other로 직접 입력)
+2. "내 Discord 사용자 ID(숫자)를 입력해주세요" (Other로 직접 입력)
 
 받은 값으로 실행:
 ```bash
