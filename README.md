@@ -16,6 +16,12 @@ git clone https://github.com/Hybirdss/HermEZ && cd HermEZ && claude .
 
 ---
 
+## 비슷한 레포
+
+OpenClaw 설치 마법사도 있습니다 → **[OpenOpenclaw](https://github.com/Hybirdss/OpenOpenclaw)**
+
+---
+
 ## 요구사항
 
 - [Claude Code](https://claude.ai/code)
