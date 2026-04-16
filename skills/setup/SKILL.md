@@ -33,7 +33,9 @@ STEP 6 는 선택. Skip 가능.
   ```
 - **모든 값은 따옴표**. 공백 없는 값도 일관성 위해 따옴표 유지.
 
-### Provider 값 (공식 `chat_parser` choices 전체)
+### Provider 값 (초보자 권장 subset — 2026-04 기준)
+
+공식 목록 전체는 `hermes model` 대화형 메뉴에서 직접 확인 (upstream 이 provider 추가할 때 자동 반영됨). 아래 표는 **HermEZ 가 실제 다루는 범위**만.
 
 | 값 | 설명 | 필요한 크레덴셜 |
 |---|------|----------------|
@@ -76,6 +78,19 @@ STEP 6 는 선택. Skip 가능.
 
 Claude 는 주 경로 시도 → 실패 감지 시 자동 폴백.
 
+### AskUserQuestion 사용 규칙
+
+- **freeform 입력 (API 키, 토큰, ID 등 임의 문자열)** — AskUserQuestion 의 선택지 중 하나로 넣지 말 것. 선택지는 2~4개 고정 옵션 용. 키 같은 임의 입력은 **Other** (사용자 직접 입력) 한 개짜리 질문으로 분리:
+  ```
+  AskUserQuestion:
+    question: "OpenRouter 키 붙여넣어 주세요"
+    options:
+      - "준비됐어요" (Other 로 실제 키 받음)
+      - "다른 방법 원해요"
+  ```
+- **선택형 질문** — 선택지 2~4개, "❌ 취소" 또는 "나중에" 같은 종료 옵션 1개 포함하도록. 사용자가 언제든 빠져나갈 수 있어야 함.
+- `multiSelect=true` 는 파워 유저 메뉴처럼 여러 개 동시 선택 허용할 때만. 키 입력은 절대 multiSelect 아님.
+
 ### 🔐 보안 한계 고지 (설치 시작 전 사용자에게 한 번 알릴 것)
 
 ```
@@ -87,9 +102,30 @@ Claude Code 세션에서 'hermes config set KEY value' 실행하면
 일반 개인 키는 이 세션 안에서 진행해도 실용적으로 OK.
 ```
 
-Shell history 보호:
-- **POSIX (bash/zsh):** 명령 맨 앞에 **공백 한 칸** + `HISTCONTROL=ignorespace` 전제
-- **PowerShell:** `Set-PSReadLineOption -HistorySaveStyle SaveNothing` 으로 세션 history 끄고 실행 → 완료 후 `SaveIncrementally` 복원
+Shell history 보호 — **각 shell 에 맞는 설정 선행**:
+
+**bash:**
+```bash
+export HISTCONTROL=ignorespace
+# 이제 명령 맨 앞에 공백 하나 붙이면 history 에 안 남음
+ hermes config set OPENROUTER_API_KEY "sk-or-v1-..."
+```
+
+**zsh (macOS 기본 shell):**
+```bash
+setopt HIST_IGNORE_SPACE
+# 동일하게 맨 앞 공백
+ hermes config set OPENROUTER_API_KEY "sk-or-v1-..."
+```
+
+> `HISTCONTROL=ignorespace` 는 **bash 전용**. zsh 는 `HIST_IGNORE_SPACE` 옵션. macOS 는 Catalina 이후 zsh 가 기본이라 주의.
+
+**PowerShell:**
+```powershell
+Set-PSReadLineOption -HistorySaveStyle SaveNothing
+hermes config set OPENROUTER_API_KEY "sk-or-v1-..."
+Set-PSReadLineOption -HistorySaveStyle SaveIncrementally   # 복원
+```
 
 ---
 
@@ -140,7 +176,8 @@ uname -s 2>/dev/null || echo "PowerShell"
 
 | 결과 | 모드 | 다음 단계 |
 |-----|-----|---------|
-| `Darwin` / `Linux` / `MINGW*` | POSIX 모드 | 0-B (POSIX) 실행 |
+| `Darwin` / `Linux` | POSIX 모드 | 0-B (POSIX) 실행 |
+| `MINGW*` / `MSYS*` / `CYGWIN*` (Git Bash 등) | **Windows 네이티브 권장** | 공식 install.sh 가 여기선 PowerShell 사용 권고하고 종료함. 0-B (PowerShell) 로 전환 |
 | `PowerShell` 또는 에러 | Windows 네이티브 | 0-B (PowerShell) 실행 |
 
 ### 0-B (POSIX). 환경 조사
@@ -219,7 +256,7 @@ try { $r = Invoke-WebRequest -Uri https://raw.githubusercontent.com -TimeoutSec 
 | `~/.codex/auth.json` 존재 | STEP 3 선택 2 에서 OAuth 재사용 제안 |
 | `~/.openclaw` 존재 | STEP 2 뒤 `hermes claw migrate` 실행 제안 |
 | `gh` 없음 | STEP 5 자가치유는 WebSearch 만 사용 |
-| Python < 3.10 | `uv python install 3.11 && uv python pin 3.11` |
+| Python < 3.11 | `uv python install 3.11 && uv python pin 3.11` |
 | `curl` / `uv` 없음 | STEP 2 전에 설치 안내 |
 | `Home 여유 < 2G` | 경고 후 계속 |
 | `github.com` unreachable | 프록시 여부 질문 |
@@ -282,6 +319,8 @@ AskUserQuestion:
 curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash -s -- --skip-setup
 ```
 
+> **Trust boundary.** 이 명령은 NousResearch 공식 `main` 브랜치의 설치 스크립트를 즉시 실행합니다. 보안 민감 환경에서는 URL 을 먼저 브라우저로 열어 내용 확인하거나, 특정 커밋 / 태그로 pin 해서 실행 (`...@<commit_sha>/scripts/install.sh`).
+>
 > **`sudo` 로 실행 금지.** `~/.local/bin` 사용자 영역 설치. sudo 쓰면 파일 소유권 충돌로 hermes 실행 실패 (공식 FAQ).
 
 설치 후 shell reload:
@@ -313,7 +352,7 @@ hermes version
 | `hermes: command not found` (POSIX) | `export PATH="$HOME/.local/bin:$PATH"` |
 | `hermes: 명령을 찾을 수 없음` (PowerShell) | PowerShell 완전히 닫고 새로 열기 |
 | `uv: command not found` | POSIX: `curl -LsSf https://astral.sh/uv/install.sh \| sh` · Windows: `irm https://astral.sh/uv/install.ps1 \| iex` |
-| Python < 3.10 | `uv python install 3.11 && uv python pin 3.11` |
+| Python < 3.11 | `uv python install 3.11 && uv python pin 3.11` |
 
 > **A+B 하이브리드.** 각 STEP 에서 막히면 `hermes setup [model\|gateway\|tools\|tts\|terminal\|agent]` 공식 wizard 로 우회. Claude 가 화면 한국어 해설.
 
@@ -370,8 +409,10 @@ WebSearch 로 `:free` 모델 선정 후:
 ```bash
  hermes config set OPENROUTER_API_KEY "[키]"
  hermes config set model.provider "openrouter"
- hermes config set model.default "openrouter/<선정 모델>"
+ hermes config set model.default "<WebSearch 로 받은 원본 ID 그대로>"
 ```
+
+> **⚠️ prefix 이중 접두 금지.** OpenRouter 모델 ID 자체가 `deepseek/deepseek-chat-v3:free`, `anthropic/claude-opus-4.6` 같은 `벤더/모델` 형식임. `model.default` 에 `openrouter/` 를 **추가로 붙이면 안 됨** → 이중 경로로 404. WebSearch 결과 / `hermes model` 출력의 원본 ID 를 그대로 저장.
 
 검증:
 ```bash
@@ -467,10 +508,11 @@ provider 만 설정하려면:
 ```bash
  hermes config set GLM_API_KEY "[키]"
  hermes config set model.provider "zai"
- hermes config set model.default "zai/<WebSearch 선정 모델>"
+ hermes config set model.default "<WebSearch 선정 원본 ID>"
 ```
 
-(env var alias: `ZAI_API_KEY`, `Z_AI_API_KEY` 도 동일하게 인식됨)
+> `glm-*` 네이티브 ID 그대로 (`glm-5.1`, `glm-4.6-plus` 식). `zai/` 접두 붙이지 말 것.
+> env var alias: `ZAI_API_KEY`, `Z_AI_API_KEY` 도 동일하게 인식됨.
 
 #### 폴백
 
@@ -490,7 +532,16 @@ hermes setup model
 | Anthropic Claude | `anthropic` | `ANTHROPIC_API_KEY` | `WebSearch "Anthropic API pricing YYYY-MM"` |
 | Google Gemini | `gemini` | `GOOGLE_API_KEY` 또는 `GEMINI_API_KEY` | `WebSearch "Google Gemini API pricing YYYY-MM"` |
 
-> **OpenAI 직접 API 키 보유자:** 선택 1 (OpenRouter) 로 가되 `OPENROUTER_API_KEY` 자리에 `OPENAI_API_KEY` 써도 됨 (OpenRouter 가 OpenAI 키 인식). 또는 선택 2 (ChatGPT OAuth).
+> **OpenAI 직접 API 키 보유자** (sk-... 를 platform.openai.com 에서 발급한 경우): 두 경로 중 선택
+> - **권장 — ChatGPT OAuth** (선택 2): 구독 있으면 이쪽이 크레딧 지급 + 토큰 자동 갱신으로 더 유리
+> - **API 키 그대로 쓰려면 `custom` provider:**
+>   ```bash
+>    hermes config set OPENAI_API_KEY "[키]"
+>    hermes config set OPENAI_BASE_URL "https://api.openai.com/v1"
+>    hermes config set model.provider "custom"
+>    hermes config set model.default "<WebSearch 선정 원본 ID, 예: gpt-5-codex>"
+>   ```
+> ⚠️ OpenAI 키를 OpenRouter 의 `OPENROUTER_API_KEY` 자리에 넣으면 인증 실패함 (다른 시스템).
 
 가격 단가 조회 후 "오늘 기준: input $X/M, output $Y/M" 1줄 제시.
 
@@ -514,8 +565,10 @@ AskUserQuestion:
 ```bash
  hermes config set ANTHROPIC_API_KEY "[키]"
  hermes config set model.provider "anthropic"
- hermes config set model.default "anthropic/<WebSearch 선정 모델>"
+ hermes config set model.default "<WebSearch 선정 원본 ID>"
 ```
+
+> Anthropic 직결은 `claude-*` 네이티브 ID 그대로 (`claude-opus-4.6` 식). `anthropic/` 접두 붙이지 말 것.
 
 폴백: `hermes setup model` → "Anthropic" → **API 키 입력 경로** (OAuth 금지!).
 
@@ -533,8 +586,10 @@ AskUserQuestion:
 ```bash
  hermes config set GOOGLE_API_KEY "[키]"
  hermes config set model.provider "gemini"
- hermes config set model.default "gemini/<WebSearch 선정 모델>"
+ hermes config set model.default "<WebSearch 선정 원본 ID>"
 ```
+
+> `gemini-*` 네이티브 ID 그대로 (`gemini-3-pro` 식). `gemini/` 접두 붙이지 말 것.
 
 폴백: `hermes setup model` → "Gemini" → API 키 입력.
 
@@ -646,14 +701,26 @@ AskUserQuestion 2번:
 
 ### 게이트웨이 시작
 
-#### 주 경로 (자동)
+> **중요 — `start` 는 서비스 시작용.** 신규 설치 직후에는 systemd/launchd 서비스가 없어서 `hermes gateway start` 가 실패한다. 먼저 **install** 하거나 **run** 으로 foreground 실행해야 한다.
 
-env var 에 이미 저장됐으니 바로:
+#### 주 경로 (자동, 백그라운드 서비스)
+
 ```bash
-hermes gateway start
+hermes gateway install        # systemd/launchd 사용자 서비스 등록 (sudo 불필요)
+hermes gateway start          # 서비스 시작
+hermes gateway status         # 확인
 ```
 
-`.env` 의 토큰을 읽어 활성 플랫폼 자동 감지.
+`install` 은 `~/Library/LaunchAgents/` (Mac) 또는 `~/.config/systemd/user/` (Linux) 에 사용자 레벨 등록 → 재부팅 후 자동 시작.
+
+#### 초보자·일회성 실행 (foreground)
+
+서비스로 돌리지 않고 터미널에서 바로 실행:
+```bash
+hermes gateway run
+```
+
+터미널 하나 점유 (Ctrl+C 로 종료). WSL2 / Docker / Termux 에서 권장.
 
 #### 폴백 (대화형)
 
@@ -678,9 +745,9 @@ Telegram/Discord 에서 방금 만든 봇에게 "안녕" 보내보세요.
 Hermes 가 답장합니다.
 
 [팁] 가족·동료에게 봇 권한 주려면:
-  hermes pairing list             # 대기 코드 확인
-  hermes pairing approve <code>
-  hermes pairing revoke <user>
+  hermes pairing list                               # 대기 코드 확인
+  hermes pairing approve <platform> <code>          # 예: hermes pairing approve telegram 123456
+  hermes pairing revoke <platform> <user_id>        # 예: hermes pairing revoke discord 987654321
 ```
 
 ---
@@ -697,22 +764,31 @@ hermes config get model.default
 ```
 
 **합격 조건:**
-- `hermes version` 에 v2026.x.x 출력
+- `hermes version` 출력이 `Hermes Agent v...` 로 시작 (구체적 버전 값은 버전마다 다름 — 예: `Hermes Agent v0.9.0 (2026.4.13)`)
 - `hermes doctor` 모든 체크 ✓ (warning OK, error 불가)
 - `model.provider` · `model.default` 에 STEP 3 설정값 출력
 
 ### 5-B. 실제 대화 테스트
 
-POSIX·Windows 공통 (공식 `-q` 단발 비대화식):
+**POSIX** (bash/zsh):
 ```bash
 hermes chat -q "안녕. 그냥 OK 라고만 답해줘." 2>&1 | tail -20
 ```
 
-`-q` 가 없는 구버전이면:
+지원 옵션 확인 (구버전):
 ```bash
 hermes --help 2>&1 | grep -i "query\|non-interactive" | head -5
 ```
-로 지원 옵션 확인 후 그에 맞춰 실행.
+
+**PowerShell** (Windows 네이티브):
+```powershell
+hermes chat -q "안녕. 그냥 OK 라고만 답해줘." 2>&1 | Select-Object -Last 20
+```
+
+옵션 확인:
+```powershell
+hermes --help 2>&1 | Select-String "query|non-interactive" | Select-Object -First 5
+```
 
 **합격 조건:** `OK` 또는 유사한 짧은 응답 출력.
 
@@ -750,7 +826,7 @@ hermes doctor --fix
    | 에러 유형 | 자동 조치 |
    |---------|---------|
    | PATH (`command not found`) | `export PATH="$HOME/.local/bin:$PATH"` |
-   | Python 3.10 미만 | `uv python install 3.11 && uv python pin 3.11` |
+   | Python 3.11 미만 | `uv python install 3.11 && uv python pin 3.11` |
    | Node 22 미만 | `nvm install 24 && nvm use 24` (nvm 있을 때) |
    | 의존성 누락 | `hermes update` |
    | `PROVIDER` / `MODEL` 대문자 오답 | 점 표기법 재설정 |
@@ -788,8 +864,10 @@ hermes doctor --fix
 
 `hermes dump` 출력 자동 포함하여 새 이슈 URL 생성:
 ```bash
-hermes dump                   # 또는 --show-keys
+hermes dump                   # 키는 "set/not set" 만 표시 — public issue 에 안전
 ```
+
+> **⚠️ `hermes dump --show-keys` 는 public issue 에 붙이지 말 것.** 키 앞뒤 4자리라도 public 에 올리면 불필요한 leak path. `--show-keys` 는 Discord DM / private 지원 채널에서만 사용.
 
 브라우저 오픈: `https://github.com/NousResearch/hermes-agent/issues/new?title=<URL-encoded>&body=<URL-encoded>`
 
@@ -1026,21 +1104,25 @@ hermes config get model.provider
 
 #### [5] Heartbeat
 
-Cron 과 동일 구조 + 최소 주기 **30분** (서버 모니터링).
+Cron 과 **동일 규칙** (최소 간격 1시간 기본). 30분 간격이 꼭 필요한 특별한 이유(예: 긴급 인프라 모니터링) 가 있을 때만 사용자에게 재확인 받고 30분 허용. 15분·5분은 Cron 규칙과 동일하게 거부.
 
 ```bash
-hermes cron create "every 30m" "홈 서버 헬스체크. 다운이면 알림" \
+# 기본 (권장)
+hermes cron create "every 1h" "홈 서버 헬스체크. 다운이면 알림" \
   --name "heartbeat-home" \
   --deliver telegram
+
+# 특별 사유 있을 때만 (사용자 재확인 후)
+hermes cron create "every 30m" "..." ...
 ```
 
-[4] 의 비용 경고 + 비활성화 안내 동일 적용.
+[4] 의 비용 경고 + 비활성화 안내 동일 적용 — 특히 API 키 사용자에겐 30분 간격이 하루 48회 = 월 $X 예상으로 환산해서 재확인.
 
 #### [6] 웹 대시보드 지금 열기
 
 **Foreground 프로세스 주의.** 터미널 하나 점유함.
 
-두 가지 방법:
+**POSIX (bash/zsh):**
 ```bash
 # 방법 1: 별도 터미널 열고 실행 (권장)
 hermes dashboard
@@ -1048,8 +1130,19 @@ hermes dashboard
 # 방법 2: 백그라운드 (로그 못 봄)
 hermes dashboard &
 ```
+종료: Ctrl+C (방법 1) 또는 `kill %1` (방법 2).
 
-기본 포트 9119, 자동 브라우저 오픈. 종료: Ctrl+C (방법 1) 또는 `kill %1` (방법 2).
+**PowerShell (Windows 네이티브):**
+```powershell
+# 방법 1: 별도 창 (권장)
+Start-Process hermes -ArgumentList "dashboard"
+
+# 방법 2: 현재 창에서 (점유됨)
+hermes dashboard
+```
+종료: Ctrl+C (방법 2) 또는 작업 관리자에서 프로세스 종료.
+
+기본 포트 9119, 자동 브라우저 오픈.
 
 #### [7] 프로필 분리
 
@@ -1118,17 +1211,19 @@ hermes profile alias work        # 'hermes-work' 래퍼 스크립트 생성
 |------|-----|
 | `hermes login --provider nous\|openai-codex` | OAuth 디바이스 플로우 |
 | `hermes logout` | 크레덴셜 삭제 |
-| `hermes auth list` / `add <provider>` / `remove <idx>` / `reset <provider>` | 크레덴셜 풀 관리 |
+| `hermes auth list` / `add <provider>` / `remove <provider> <target>` / `reset <provider>` | 크레덴셜 풀 관리 (target = idx/id/label) |
 | `hermes model` | provider/모델 변경 대화형 |
 
 ### 메신저 게이트웨이
 | 명령 | 설명 |
 |------|-----|
 | `hermes gateway setup` | 플랫폼 설정 대화형 |
-| `hermes gateway run` | Foreground (WSL/Docker) |
-| `hermes gateway install` / `start` / `stop` / `restart` / `uninstall` | 시스템 서비스 제어 |
+| `hermes gateway run` | Foreground (WSL/Docker, 처음 돌릴 때 권장) |
+| `hermes gateway install` | systemd/launchd 사용자 서비스 등록 (sudo 불필요) |
+| `hermes gateway start` / `stop` / `restart` | 서비스 제어 — **install 먼저 해야 start 됨** |
+| `hermes gateway uninstall` | 서비스 제거 |
 | `hermes gateway status` | 상태 확인 |
-| `hermes pairing list` / `approve <code>` / `revoke <user>` | 메신저 유저 승인 |
+| `hermes pairing list` / `approve <platform> <code>` / `revoke <platform> <user_id>` / `clear-pending` | 메신저 유저 승인 |
 
 ### 웹 / 자동화
 | 명령 | 설명 |
@@ -1190,7 +1285,7 @@ hermes profile alias work        # 'hermes-work' 래퍼 스크립트 생성
 | 모델 404 / discontinued | WebSearch 로 최신 모델 교체 |
 | `context exceeded` 과소 | `hermes config set model.context_length "131072"` 수동 |
 | 브라우저 자동 오픈 실패 | URL echo 안내대로 수동 복사 |
-| Python 3.10 미만 | `uv python install 3.11 && uv python pin 3.11` |
+| Python 3.11 미만 | `uv python install 3.11 && uv python pin 3.11` |
 | `/model` 이 새 provider 전환 안 됨 | 세션 종료 후 `hermes model` 터미널에서 (공식 FAQ) |
 | 수동 설정 막힘 | `hermes setup` 전체 wizard 재실행 (Claude 한국어 해설) |
 
