@@ -1,0 +1,50 @@
+<svg width="800" height="200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .bg { fill: #0d1117; }
+      .border { fill: none; stroke: #30363d; stroke-width: 1.5; }
+      .logo { font-family: 'Courier New', Courier, monospace; font-size: 52px; font-weight: bold; fill: #3fb950; letter-spacing: 4px; }
+      .ez { fill: #58a6ff; }
+      .sub { font-family: 'Courier New', Courier, monospace; font-size: 13px; fill: #8b949e; letter-spacing: 1px; }
+      .tag { font-family: 'Courier New', Courier, monospace; font-size: 11px; fill: #3fb950; }
+      .by { font-family: 'Courier New', Courier, monospace; font-size: 11px; fill: #484f58; }
+      .prompt { fill: #3fb950; }
+      .cursor { fill: #3fb950; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="200" rx="8" class="bg"/>
+
+  <!-- Border -->
+  <rect x="1" y="1" width="798" height="198" rx="7" class="border"/>
+
+  <!-- Top dots (terminal style) -->
+  <circle cx="24" cy="24" r="6" fill="#ff5f57"/>
+  <circle cx="44" cy="24" r="6" fill="#febc2e"/>
+  <circle cx="64" cy="24" r="6" fill="#28c840"/>
+
+  <!-- Title bar text -->
+  <text x="400" y="28" text-anchor="middle" class="by">— bash —</text>
+
+  <!-- Separator line -->
+  <line x1="1" y1="42" x2="799" y2="42" stroke="#30363d" stroke-width="1"/>
+
+  <!-- Prompt line -->
+  <text x="32" y="80" class="tag">$ </text>
+  <text x="52" y="80" class="sub">claude .</text>
+
+  <!-- Logo: Herm + EZ -->
+  <text x="32" y="148" class="logo">Herm<tspan class="ez">EZ</tspan></text>
+
+  <!-- Tagline -->
+  <text x="36" y="168" class="sub">Hermes Agent 한방 설치 마법사  ·  Claude가 처음부터 끝까지</text>
+
+  <!-- Made by -->
+  <text x="764" y="184" text-anchor="end" class="by">made by hybirdss</text>
+
+  <!-- Cursor blink -->
+  <rect x="148" y="66" width="9" height="16" class="cursor" opacity="0.9">
+    <animate attributeName="opacity" values="0.9;0;0.9" dur="1.2s" repeatCount="indefinite"/>
+  </rect>
+</svg>
