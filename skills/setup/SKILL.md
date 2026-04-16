@@ -1,13 +1,32 @@
-n# Hermes Agent 설치 마법사
+# Hermes Agent 설치 마법사
 
 Claude가 이 파일을 읽으면 아래 단계를 순서대로 실행한다.
 사용자에게 먼저 이 배너를 출력하고 시작한다.
 
-**치명적 원칙:**
+## 치명적 원칙
+
 - `hermes config set` 의 키 이름은 **전부 대문자** (UPPER_SNAKE_CASE). 소문자 쓰면 안 먹힘.
 - API 키가 포함된 명령은 실행 전 **맨 앞에 공백 한 칸**을 넣는다 (`HISTCONTROL=ignorespace` 가 기본이면 bash history에 안 남음).
 - 키는 화면에 그대로 출력하지 말 것.
-- **이 파일 안에 적힌 모델명(`deepseek-*`, `gpt-*`, `claude-*` 등)을 그대로 쓰지 말 것.** STEP 3 에 모델 선정 절차가 있음. 반드시 `WebSearch` 로 오늘 날짜 기준 최신 모델 조회 후 사용. 모델은 월 단위로 deprecated 된다.
+- **Anthropic Claude 는 OAuth 금지.** Hermes 의 "OAuth (Claude Code)" 경로 선택 X. API 키만 사용 (이유: credential 공유 시 "out of extra usage" 에러 — GitHub #6475). Claude 는 유료 API.
+- **Claude / Gemini / OpenAI API 는 유료.** 토큰당 과금. 카드 등록 필수.
+- **이 파일 안에 적힌 모델명(`deepseek-*`, `gpt-*`, `claude-*`, `glm-*` 등)을 그대로 쓰지 말 것.** STEP 3 에 모델 선정 절차가 있음. 반드시 `WebSearch` 로 오늘 날짜 기준 최신 모델 조회 후 사용. 모델은 월 단위로 deprecated 된다.
+
+## 브라우저 오픈 규칙
+
+URL 을 열 때 아래 **한 줄 패턴**을 사용한다 (`[URL]` 만 치환):
+
+```bash
+(cmd.exe /c start "" "[URL]" 2>/dev/null || open "[URL]" 2>/dev/null || xdg-open "[URL]" 2>/dev/null) || echo "⚠️  브라우저가 자동으로 안 열립니다. 아래 주소를 복사해서 브라우저에 직접 붙여넣어 주세요:\n\n    [URL]\n"
+```
+
+순서 이유 (2026 실측 기준):
+- `cmd.exe /c start "" "URL"`: WSL2 에서 `explorer.exe` 또는 `powershell.exe` 보다 안정적. `start` 의 첫 인자 `""` 는 창 제목 자리(빈 문자열).
+- `open`: macOS 네이티브.
+- `xdg-open`: Linux 데스크탑 (GNOME/KDE 등).
+- 전부 실패 → URL 을 깔끔하게 출력해서 사용자가 수동 복사.
+
+`2>/dev/null` 로 stderr 억제 (WSL 아닌 Mac 에서 `cmd.exe` 못 찾음 에러 안 보이게).
 
 ---
 
@@ -33,7 +52,7 @@ Claude가 이 파일을 읽으면 아래 단계를 순서대로 실행한다.
 
 ## STEP 1 — OS 확인
 
-AskUserQuestion으로 묻는다:
+AskUserQuestion:
 
 ```
 질문: "어떤 환경에서 설치하시나요?"
@@ -46,7 +65,7 @@ AskUserQuestion으로 묻는다:
 
 ### Windows 선택 시 → WSL2 필수
 
-Hermes는 **Windows 네이티브 미지원** (공식 확인). WSL2 설치:
+Hermes 는 **Windows 네이티브 미지원** (공식 확인). WSL2 설치:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -69,9 +88,9 @@ Hermes는 **Windows 네이티브 미지원** (공식 확인). WSL2 설치:
 
 AskUserQuestion: "WSL2 Ubuntu 터미널이 열려있나요?"
 선택지:
-  - 네, Ubuntu 터미널 열려있어요 — 다음 단계
-  - 아직 설치 중이에요 — 완료되면 알려달라고 안내
-  - 이미 WSL2 있어요 — 다음 단계
+  - 네, Ubuntu 열려있어요 — 다음
+  - 아직 설치 중 — 완료되면 알려달라고 안내
+  - 이미 WSL2 있어요 — 다음
 
 ### Android 선택 시
 
@@ -80,14 +99,14 @@ AskUserQuestion: "WSL2 Ubuntu 터미널이 열려있나요?"
 │  Android → Termux 설치                                   │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
-│  1. F-Droid에서 Termux 설치                              │
+│  1. F-Droid 에서 Termux 설치                             │
 │     (Play Store 버전은 구버전이라 안 됨)                 │
 │     https://f-droid.org → "Termux" 검색                 │
 │                                                         │
 │  2. Termux 열고 아래 실행:                               │
 │     pkg update && pkg upgrade                           │
 │                                                         │
-│  3. 완료되면 다음 단계 진행                               │
+│  3. 완료되면 다음 단계                                   │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -96,86 +115,74 @@ AskUserQuestion: "WSL2 Ubuntu 터미널이 열려있나요?"
 
 ## STEP 2 — 설치
 
-아래 내용을 출력한 뒤, Bash로 설치 명령을 실행한다.
-
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  설치 중...  (보통 2~5분)                                │
+│  설치 중... (보통 2~5분)                                 │
 │                                                         │
 │  Python, Node.js, hermes-agent, 브라우저 도구            │
-│  → 설치 스크립트가 알아서 다 해줍니다.                   │
-│                                                         │
-│  그냥 기다리시면 됩니다.                                  │
+│  → 공식 설치 스크립트가 알아서 다 해줍니다.              │
 └─────────────────────────────────────────────────────────┘
 ```
 
-실행할 명령 (공식 설치 스크립트, Android는 자동으로 `.[termux]` extra 적용):
+실행 (Android 는 자동으로 `.[termux]` extra 적용):
 ```bash
 curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
 ```
 
-설치 완료 후 반드시 shell reload:
+설치 완료 후 shell reload:
 ```bash
 source ~/.bashrc 2>/dev/null || source ~/.zshrc 2>/dev/null || true
 ```
 
-hermes가 제대로 설치됐는지 확인:
+확인:
 ```bash
 hermes version
 ```
 
-실패하면 PATH 문제:
+실패 시 PATH 문제:
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
 hermes version
 ```
 
-그래도 실패하면 사용자에게 터미널을 완전히 닫고 다시 열어달라고 안내한다.
+그래도 실패하면 터미널 완전히 닫고 다시 열어달라고 안내.
 
 ---
 
 ## STEP 3 — AI 모델 연결
 
-이 단계가 가장 중요하다. **가장 쉬운 4가지 방법**을 제시한다.
+### ⚠️  모델 추천 원칙 (이 STEP 전체에 적용)
 
-### ⚠️ 모델 추천 원칙 (이 STEP 전체에 적용)
-
-**하드코딩된 모델명을 믿지 말 것.** 이 파일에 `deepseek-chat-v3:free`, `gpt-4o-mini`, `claude-sonnet-4` 같은 이름이 남아있어도 **그대로 쓰면 안 됨**. 모델은 월 단위로 교체·deprecated 된다.
+**하드코딩된 모델명을 믿지 말 것.** 이 파일에 예시로 남은 모델 이름도 월 단위로 교체·deprecated 된다.
 
 사용자가 provider 를 선택하는 순간, Claude 는 아래를 **반드시 `WebSearch` 로 조회**한다:
 
-1. **Hermes 공식 현재 추천** — 쿼리: `"site:hermes-agent.nousresearch.com recommended model {오늘의 YYYY-MM}"` 또는 `"Hermes Agent recommended model provider:{provider명} {오늘의 YYYY-MM}"`
+1. **Hermes 공식 현재 추천** — 쿼리: `"site:hermes-agent.nousresearch.com recommended model {provider명} {오늘의 YYYY-MM}"`
 2. **해당 provider 의 최신 주력 모델** — 쿼리: `"{provider명} best model {오늘의 YYYY-MM} tool calling agent"`
 3. **deprecation 확인** — 쿼리: `"{후보 모델명} deprecated"` (hit 있으면 제외)
 
-세 결과를 교차해서 남는 모델 1개를 사용자에게 제시. 근거 1줄 + 오늘 날짜 표기. 사용자 승인 후 `hermes config set MODEL` 실행.
+세 결과 교차해서 남는 모델 1개를 사용자에게 제시. 근거 1줄 + 오늘 날짜 표기. 사용자 승인 후 `hermes config set MODEL` 실행.
 
-> **오늘 날짜는 환경 `currentDate` 를 참조.** "2026-04-16" 처럼 YYYY-MM-DD 포맷.
+> 오늘 날짜는 환경 `currentDate` 참조.
 
 ---
 
-AskUserQuestion (multiSelect=false):
+AskUserQuestion:
 
 ```
 질문: "AI 모델 어떻게 쓰시겠어요? (1번이 가장 쉬움)"
 선택지:
-  - 🎯 OpenRouter 무료 (카드 등록 없음, 1분)  — 가장 쉬움 (Recommended)
-  - ⭐ Claude 계정 연결 (Anthropic OAuth)  — Claude Pro/Max 유저용
-  - 🤖 ChatGPT 계정 연결 (OpenAI Codex OAuth)  — ChatGPT Plus/Pro 유저용
-  - 🇨🇳 GLM / z.ai 연결  — GLM Coding Plan 유저용
-  - 🛠 이미 API 키 있어요 — 수동 입력
+  - 🎯 OpenRouter 무료 (카드 없음, 1분) — 가장 쉬움 (Recommended)
+  - 🤖 ChatGPT 계정 연결 (OpenAI Codex OAuth) — ChatGPT Plus/Pro 유저용
+  - 🇨🇳 GLM / z.ai — GLM Coding Plan 또는 저렴한 고성능
+  - 💳 유료 API 직접 (Claude/Gemini/OpenAI) — 비용 발생
 ```
 
 ---
 
-### 선택 1 — OpenRouter 무료
+### 선택 1 — OpenRouter 무료 (카드 없음)
 
-브라우저 자동 오픈:
-```bash
-open "https://openrouter.ai/keys" 2>/dev/null || \
-xdg-open "https://openrouter.ai/keys" 2>/dev/null || \
-powershell.exe /c start "https://openrouter.ai/keys" 2>/dev/null || true
-```
+브라우저 오픈 (규칙 패턴 사용): `https://openrouter.ai/keys`
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -190,7 +197,7 @@ powershell.exe /c start "https://openrouter.ai/keys" 2>/dev/null || true
 │  3. "Create Key" → 이름 아무거나 (예: hermes) → Create  │
 │                                                         │
 │  4. sk-or-v1-... 로 시작하는 키 복사                     │
-│     ⚠️  이 창 닫으면 키를 다시 볼 수 없음!              │
+│     ⚠️  이 창 닫으면 키 다시 못 봄!                     │
 │                                                         │
 │  💡 카드 등록 없이 무료 모델 사용 가능                    │
 │  💡 무료 한도: 하루 50회 요청, 분당 20회                  │
@@ -200,28 +207,26 @@ powershell.exe /c start "https://openrouter.ai/keys" 2>/dev/null || true
 
 AskUserQuestion: "OpenRouter 키를 복사하셨나요?"
 선택지:
-  - 네, 복사했어요 — 키 입력 단계로
+  - 네, 복사했어요 — 키 입력
   - Google 로그인이 안 돼요 — 안내 재출력
   - 다른 방법 원해요 — STEP 3 처음으로
 
-키를 Other 로 입력받아 저장:
+키를 Other 로 받아 저장:
 ```bash
  hermes config set OPENROUTER_API_KEY [입력받은 키]
 ```
 
-**모델은 "모델 추천 원칙"에 따라 설치 시점에 조회한다. 특히 OpenRouter 무료 티어는 월 단위로 바뀜.**
+**모델은 WebSearch 로 조회.** 병렬 2개:
+- `"site:hermes-agent.nousresearch.com OpenRouter free model {오늘의 YYYY-MM}"`
+- `"OpenRouter best free model {오늘의 YYYY-MM} agent tool calling :free"`
 
-병렬 `WebSearch` 2개:
-- `"site:hermes-agent.nousresearch.com OpenRouter free model {오늘의 YYYY-MM}"` — Hermes 공식 현재 추천
-- `"OpenRouter best free model {오늘의 YYYY-MM} agent tool calling :free"` — 커뮤니티 최신 의견
-
-교차해서 남는 모델 중 조건 만족하는 1개 선정:
+조건:
 - 모델 ID 가 `:free` 로 끝남
 - 도구 호출 지원
-- 검색 결과에 deprecated/discontinued 언급 없음
+- deprecated 언급 없음
 - 컨텍스트 32k+
 
-선정 결과를 사용자에게 제시 (`"2026-04-16 기준 현재 추천: <모델 ID>. 이유: <1줄>"`), 승인 후:
+선정 결과를 `"YYYY-MM-DD 기준 현재 추천: <모델 ID>. 이유: <1줄>"` 으로 제시. 승인 후:
 ```bash
  hermes config set MODEL "openrouter/<선정된 모델>"
 ```
@@ -230,132 +235,190 @@ AskUserQuestion: "OpenRouter 키를 복사하셨나요?"
 
 ---
 
-### 선택 2 — Claude 계정 OAuth (Anthropic)
+### 선택 2 — ChatGPT 계정 OAuth (OpenAI Codex)
 
-Hermes는 **Claude Code의 credential store를 재사용**하므로, Claude Code 이미 설치·로그인해 있으면 키 입력 필요 없음.
-
-```bash
-hermes model
-```
-
-`hermes model` 실행 전에 **병렬 `WebSearch` 2개**로 현재 추천 파악:
-- `"site:hermes-agent.nousresearch.com Anthropic recommended model {오늘의 YYYY-MM}"` — Hermes 공식 추천
-- `"Anthropic Claude latest model {오늘의 YYYY-MM} agent coding"` — 제조사 최신 flagship
-
-그 결과로 "이번 달 추천: <모델명>" 한 줄 사용자에게 먼저 제시. 그런 다음:
-
-```bash
-hermes model
-```
-
-대화형 선택 화면에서:
-1. `Anthropic` 선택
-2. 인증 방식 묻는 화면에서 `OAuth (Claude Code)` 선택
-3. 브라우저가 열리면 Claude 계정으로 로그인
-4. "Authorize" 클릭
-5. 모델 선택 화면에서 **WebSearch 로 파악한 그 모델** 선택 (메뉴에 나타난 라벨 그대로)
-
-> 메뉴에 없는 모델이면 가장 최신 flagship (목록 상단) 을 고르게 안내.
+**제대로 된 OAuth 방법.** API 키 복사·붙여넣기 없이, `hermes` 가 디바이스 코드 플로우로 ChatGPT 계정 직접 연결. 크레덴셜은 `~/.hermes/auth.json` 저장, 토큰 자동 갱신.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  Anthropic OAuth 장점                                    │
+│  ChatGPT 계정 OAuth — API 키 발급 불필요                 │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
-│  ✓ Claude Pro/Max 구독 그대로 사용                       │
-│  ✓ 키 별도 발급·관리 불필요                              │
-│  ✓ 토큰 자동 갱신 (refresh)                              │
-│  ✓ Claude Code 와 credential 공유                        │
+│  ✓ Plus / Pro 구독 그대로 사용                          │
+│  ✓ 토큰 자동 갱신 — 한 번 로그인하면 계속 유지           │
+│  ✓ Codex CLI (~/.codex/auth.json) 있으면 자동 가져옴     │
+│                                                         │
+│  ⚠️  ChatGPT Free 플랜은 안 됨                           │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
 
-AskUserQuestion: "hermes model 로 OAuth 연결이 끝났나요?"
+아래 명령 실행 (Hermes 가 디바이스 코드 생성 + 브라우저 자동 오픈 시도):
+```bash
+hermes auth add openai-codex
+```
+
+사용자 안내:
+```
+1. 터미널에 뜬 URL 이 자동으로 브라우저에 열림
+2. 안 열리면 URL 직접 복사해서 브라우저에 붙여넣기
+3. 터미널 표시 6자리 코드를 브라우저 페이지에 입력
+4. ChatGPT 계정으로 로그인
+5. "Authorize" 클릭
+6. 터미널에 "Authentication successful" 확인
+```
+
+AskUserQuestion: "OAuth 인증 완료됐나요?"
 선택지:
-  - 네, 완료 — STEP 4로
-  - Claude 계정 없음 — 선택 1(OpenRouter) 로 우회
-  - "out of extra usage" 에러 — `hermes config set ANTHROPIC_API_KEY` 로 유료 키 전환 안내
+  - 네, successful 떴어요 — 모델 선택으로
+  - 브라우저가 안 열려요 — 터미널 URL 직접 복사 안내
+  - ChatGPT Free 플랜이래요 — 선택 1(OpenRouter) 또는 선택 4(유료 API)
+  - 이미 Codex CLI 있어요 — `~/.codex/auth.json` 자동 import (안 되면 `hermes auth add openai-codex` 강제)
+
+인증 완료 후:
+```bash
+ hermes config set PROVIDER codex
+```
+
+**모델 WebSearch** (선정 원칙 적용):
+- `"site:hermes-agent.nousresearch.com OpenAI Codex recommended model {오늘의 YYYY-MM}"`
+- `"OpenAI Codex latest model {오늘의 YYYY-MM} agent tool calling"`
+
+선정 후 사용자 승인 → `hermes config set MODEL "codex/<선정 모델>"`.
 
 ---
 
-### 선택 3 — ChatGPT Plus/Pro OAuth (OpenAI)
+### 선택 3 — GLM / z.ai
 
-**핵심:** OpenAI는 `platform.openai.com/api-keys` 에서 "Sign in with ChatGPT" 버튼이 2026에 추가됨. ChatGPT Plus ($5)/Pro ($50) 유저에게 API 크레딧 자동 지급.
+중국 Z.AI (ZhipuAI) GLM 시리즈. Coding Plan 구독 또는 저렴한 고성능 모델 원할 때.
 
-브라우저 자동 오픈:
-```bash
-open "https://platform.openai.com/api-keys" 2>/dev/null || \
-xdg-open "https://platform.openai.com/api-keys" 2>/dev/null || \
-powershell.exe /c start "https://platform.openai.com/api-keys" 2>/dev/null || true
-```
+브라우저 오픈 (규칙 패턴 사용): `https://z.ai/manage-apikey/apikey-list`
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  ChatGPT 계정으로 API 키 자동 발급 (Plus: $5, Pro: $50)  │
+│  z.ai API 키 발급                                        │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
-│  1. 페이지 상단 "Sign in with ChatGPT" 버튼 클릭         │
-│     (일반 로그인 아님, ChatGPT 버튼임)                   │
+│  1. z.ai 계정 로그인 (없으면 회원가입)                    │
+│  2. "Create API Key" → 이름 입력                         │
+│  3. 생성된 키 복사 (한 번만 표시)                        │
 │                                                         │
-│  2. ChatGPT 계정으로 로그인 (Plus/Pro 구독 계정)         │
+│  💡 GLM Coding Plan 구독자는 해당 플랜 크레딧 사용        │
+│  💡 개별 종량제는 입력/출력 토큰당 과금                   │
 │                                                         │
-│  3. 조직(Organization) 선택 → "Authorize"                │
-│     → 자동으로 API 키 생성됨                             │
-│                                                         │
-│  4. 생성된 sk-... 키 복사                                │
-│     ⚠️  한 번만 표시됨                                   │
-│                                                         │
-│  💡 Plus: $5 크레딧 / Pro: $50 크레딧 즉시 지급          │
-│  💡 크레딧 30일 후 만료                                  │
-│                                                         │
-│  ChatGPT Free 플랜은 크레딧 없음 → 카드 등록 필요        │
+│  ⚠️  글로벌/중국/Coding variants 엔드포인트는 Hermes 가  │
+│     자동 탐지 — GLM_BASE_URL 수동 설정 불필요            │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
 
-키를 Other 로 입력받아 저장:
+AskUserQuestion: "z.ai API 키 복사했나요?"
+선택지:
+  - 네, 복사했어요 — 키 입력
+  - z.ai 가입 안 돼요 — 선택 1(OpenRouter) 로 우회
+  - 다른 방법 원해요 — STEP 3 처음으로
+
+키 저장:
+```bash
+ hermes config set GLM_API_KEY [입력받은 키]
+ hermes config set PROVIDER zai
+```
+
+**모델 WebSearch** (선정 원칙 적용):
+- `"site:hermes-agent.nousresearch.com GLM zai recommended model {오늘의 YYYY-MM}"`
+- `"z.ai GLM latest model {오늘의 YYYY-MM} coding agent"`
+
+선정 후 승인 → `hermes config set MODEL "zai/<선정 모델>"`.
+
+---
+
+### 선택 4 — 유료 API 직접 (Anthropic / Google / OpenAI)
+
+**⚠️  전부 토큰당 과금.** 무료 원하면 선택 1(OpenRouter) 로 돌아갈 것.
+
+| Provider | 방식 | 최소 충전 | 단가 참고 (WebSearch 로 오늘 값 확인) |
+|----------|-----|---------|--------------------------------------|
+| **Anthropic Claude** | API 키만 (OAuth 금지) | $5 선충전 | 월 1회 이상 `WebSearch "Anthropic API pricing YYYY-MM"` 으로 확인 |
+| **Google Gemini** | API 키 | pay-as-you-go | `WebSearch "Google Gemini API pricing YYYY-MM"` |
+| **OpenAI** (ChatGPT 안 쓰는 경우) | API 키 | 카드 등록 | `WebSearch "OpenAI API pricing YYYY-MM"` |
+
+> **Anthropic 은 Hermes OAuth 경로 절대 사용 금지.** `hermes model` 의 Anthropic 제공자에서 "OAuth (Claude Code)" 옵션 나와도 선택하지 말 것. Hermes ↔ Claude Code credential store 공유 시 "out of extra usage" 에러, 토큰 동기화 불안정 (GitHub #6475). 반드시 **API 키** 경로로만 진행.
+
+가격 단가를 사용자에게 보여준 뒤 진행. `WebSearch "{provider} API pricing {오늘의 YYYY-MM}"` 로 현재 값 확인해서 "오늘 기준: input $X/M, output $Y/M" 한 줄로 제시.
+
+AskUserQuestion: "어느 provider 직접 쓰시겠어요?"
+선택지:
+  - Anthropic Claude API (유료, 비쌈)
+  - Google Gemini API (유료, 중간)
+  - OpenAI API (유료)
+  - 취소 — STEP 3 처음으로
+
+#### Anthropic Claude (API 키 only)
+
+브라우저 오픈 (규칙 패턴): `https://console.anthropic.com/settings/keys`
+
+```
+1. 로그인 (없으면 회원가입)
+2. Billing 에서 카드 등록 + 최소 $5 선충전
+3. "Create Key" → 이름 → 생성
+4. sk-ant-... 키 복사 (한 번만 표시)
+
+⚠️  토큰당 과금. 사용 많으면 크레딧 빨리 소진.
+⚠️  Hermes OAuth 경로 쓰지 말고 이 API 키만 사용.
+```
+
+저장:
+```bash
+ hermes config set ANTHROPIC_API_KEY [입력받은 키]
+ hermes config set PROVIDER anthropic
+```
+
+모델 WebSearch → `hermes config set MODEL "anthropic/<선정 모델>"`.
+
+#### Google Gemini (API 키)
+
+브라우저 오픈 (규칙 패턴): `https://aistudio.google.com/app/apikey`
+
+```
+1. Google 계정 로그인
+2. "Create API key" → 프로젝트 선택 → 생성
+3. 키 복사 (AIza... 형태)
+
+⚠️  토큰당 과금. Google Cloud 빌링 계정 연결 필요할 수 있음.
+💡 AI Studio 에 free tier 있지만 제한적 — 업무용은 유료 권장.
+```
+
+**주의: Hermes 가 Google provider 용 config 키명을 공식적으로 `GEMINI_API_KEY` 가 맞는지 `GOOGLE_API_KEY` 인지 확인 필요.** `WebSearch "site:hermes-agent.nousresearch.com Google Gemini env var {오늘의 YYYY-MM}"` 로 현재 정확한 키명 조회 후 설정.
+
+저장 (키명 WebSearch 결과에 따름):
+```bash
+ hermes config set <확인한 키명> [입력받은 키]
+ hermes config set PROVIDER google
+```
+
+모델 WebSearch → `hermes config set MODEL "google/<선정 모델>"`.
+
+#### OpenAI (ChatGPT OAuth 안 쓰고 API 키로)
+
+브라우저 오픈 (규칙 패턴): `https://platform.openai.com/api-keys`
+
+```
+1. 로그인
+2. Billing 에서 카드 등록 + 최소 $5 선충전
+3. "Create new secret key" → 이름 → 생성
+4. sk-... 키 복사 (한 번만 표시)
+
+⚠️  토큰당 과금.
+💡 ChatGPT Plus/Pro 구독 있으면 선택 2(OAuth) 가 더 이득 — 이쪽은 구독과 별개 과금.
+```
+
+저장:
 ```bash
  hermes config set OPENAI_API_KEY [입력받은 키]
+ hermes config set PROVIDER openai
 ```
 
-**병렬 `WebSearch` 3개**로 현재 추천 파악:
-- `"site:hermes-agent.nousresearch.com OpenAI recommended model {오늘의 YYYY-MM}"` — Hermes 공식 추천
-- `"OpenAI latest model {오늘의 YYYY-MM} agent tool calling"` — OpenAI 최신 발표
-- `"site:platform.openai.com pricing {오늘의 YYYY-MM}"` — 현재 가격
-
-사용자에게 먼저 묻는다:
-```
-질문: "OpenAI 모델 어느 쪽으로 갈까요?"
-선택지:
-  - 💸 저렴 + 빠른 (일상 용도, mini/nano 급)
-  - 🚀 최강 성능 (flagship, 가격 비쌈)
-  - 🧠 추론 특화 (reasoning 모델, 중간 가격)
-```
-
-선택에 따라 WebSearch 결과에서 조건 만족하는 모델 1개 선정. 근거·가격·오늘 날짜 포함 한 줄로 제시.
-승인 후:
-```bash
- hermes config set MODEL "openai/<선정된 모델>"
-```
-
-사용자 거부 시 `hermes model` 대화형 선택.
-
----
-
-### 선택 4 — 수동 API 키
-
-이미 키가 있는 숙련자용. 어떤 provider 키인지 묻고 해당 명령 실행.
-
-| Provider | 명령어 |
-|----------|-------|
-| OpenRouter | ` hermes config set OPENROUTER_API_KEY [키]` |
-| Anthropic | ` hermes config set ANTHROPIC_API_KEY [키]` |
-| OpenAI | ` hermes config set OPENAI_API_KEY [키]` |
-
-그 후 모델 설정:
-```bash
-hermes model    # 대화형으로 provider + model 선택
-```
+모델 WebSearch → `hermes config set MODEL "openai/<선정 모델>"`.
 
 ---
 
@@ -370,21 +433,19 @@ hermes model    # 대화형으로 provider + model 선택
 └─────────────────────────────────────────────────────────┘
 ```
 
-AskUserQuestion: "메신저 연동을 설정할까요?"
+AskUserQuestion:
+```
+질문: "메신저 연동을 설정할까요?"
 선택지:
   - Telegram 연동 — 봇 만들고 연결
   - Discord 연동 — 봇 만들고 연결
   - 둘 다 — Telegram 먼저, 그 다음 Discord
   - 나중에 — 건너뛰기 → STEP 5
+```
 
 ### Telegram 연동
 
-먼저 BotFather 오픈:
-```bash
-open "https://t.me/BotFather" 2>/dev/null || \
-xdg-open "https://t.me/BotFather" 2>/dev/null || \
-powershell.exe /c start "https://t.me/BotFather" 2>/dev/null || true
-```
+브라우저 오픈 (규칙 패턴): `https://t.me/BotFather`
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -396,42 +457,35 @@ powershell.exe /c start "https://t.me/BotFather" 2>/dev/null || true
 │                                                         │
 │  채팅창에 순서대로:                                       │
 │                                                         │
-│  Step 1. /newbot  (그대로 입력)                          │
+│  Step 1. /newbot                                        │
 │                                                         │
-│  Step 2. 봇 이름 입력                                    │
+│  Step 2. 봇 이름 (한글 가능)                             │
 │          예시: 내 AI 비서                                │
-│          (한글 가능, 뭐든 상관없음)                      │
 │                                                         │
-│  Step 3. 봇 아이디 입력                                  │
-│          규칙: 영어만, 반드시 bot으로 끝나야 함           │
+│  Step 3. 봇 아이디 (영어만, bot 으로 끝나야 함)          │
 │          예시: myhermes_bot                              │
 │                                                         │
-│  완료되면 아래 형태 토큰:                                 │
+│  완료되면 토큰 표시:                                      │
 │  1234567890:ABCdefGHIjklMNOpqrSTUvwxYZ                  │
-│  → 이 줄 전체 복사                                       │
+│  → 줄 전체 복사                                          │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
 
 AskUserQuestion: "봇 토큰 복사했나요?"
 선택지:
-  - 네, 토큰 복사했어요 — 다음
-  - bot으로 끝나는 아이디가 이미 있대요 — 다른 이름 재시도 안내
-  - BotFather 를 못 찾겠어요 — 검색창에 @BotFather 입력, 파란 체크 확인
+  - 네, 토큰 복사 — 다음
+  - bot 으로 끝나는 아이디 중복 — 다른 이름 재시도
+  - BotFather 를 못 찾음 — 검색창에 @BotFather, 파란 체크 확인
 
-userinfobot 오픈:
-```bash
-open "https://t.me/userinfobot" 2>/dev/null || \
-xdg-open "https://t.me/userinfobot" 2>/dev/null || \
-powershell.exe /c start "https://t.me/userinfobot" 2>/dev/null || true
-```
+브라우저 오픈 (규칙 패턴): `https://t.me/userinfobot`
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  [2/2]  내 Telegram ID 확인                              │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
-│  방금 열린 @userinfobot 에서 /start                      │
+│  @userinfobot 에서 /start                                │
 │                                                         │
 │  Id: 123456789  ← 이 숫자만 복사                        │
 │                                                         │
@@ -439,10 +493,10 @@ powershell.exe /c start "https://t.me/userinfobot" 2>/dev/null || true
 ```
 
 AskUserQuestion 두 번 (Other 로 직접 입력):
-1. "BotFather 에서 받은 봇 토큰을 붙여넣어 주세요"
+1. "BotFather 에서 받은 봇 토큰 붙여넣어 주세요"
 2. "@userinfobot 에서 확인한 숫자 ID 를 입력해주세요"
 
-받은 값으로 config (맨 앞 공백 + 대문자):
+저장:
 ```bash
  hermes config set TELEGRAM_BOT_TOKEN [봇 토큰]
  hermes config set TELEGRAM_ALLOWED_USERS [Telegram ID]
@@ -450,50 +504,45 @@ AskUserQuestion 두 번 (Other 로 직접 입력):
 
 ### Discord 연동
 
-Discord 개발자 포털 오픈:
-```bash
-open "https://discord.com/developers/applications" 2>/dev/null || \
-xdg-open "https://discord.com/developers/applications" 2>/dev/null || \
-powershell.exe /c start "https://discord.com/developers/applications" 2>/dev/null || true
-```
+브라우저 오픈 (규칙 패턴): `https://discord.com/developers/applications`
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  [1/3]  봇 앱 만들기                                     │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
-│  1. Discord 계정으로 로그인                              │
-│  2. 우측 상단 "New Application" → 이름 입력 → Create    │
-│  3. 왼쪽 메뉴 "Bot" 클릭                                 │
+│  1. Discord 계정 로그인                                  │
+│  2. 우상단 "New Application" → 이름 → Create            │
+│  3. 왼쪽 메뉴 "Bot"                                      │
 │                                                         │
 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
 │  ⚠️  여기 안 하면 봇이 완전 먹통!                        │
 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
 │                                                         │
-│  4. 아래로 스크롤 → "Privileged Gateway Intents"         │
+│  4. 스크롤 → "Privileged Gateway Intents"                │
 │     ┌─────────────────────────────────────────┐        │
-│     │ SERVER MEMBERS INTENT    [ON  ●]         │        │
-│     │ MESSAGE CONTENT INTENT   [ON  ●]         │        │
+│     │ SERVER MEMBERS INTENT    [ON ●]          │        │
+│     │ MESSAGE CONTENT INTENT   [ON ●]          │        │
 │     └─────────────────────────────────────────┘        │
 │     두 개 모두 ON                                        │
 │                                                         │
-│  5. "Save Changes" 클릭                                  │
+│  5. "Save Changes"                                      │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  [2/3]  봇 토큰 발급 + 서버 초대                         │
+│  [2/3]  봇 토큰 + 서버 초대                              │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │  토큰:                                                   │
-│  1. Bot 메뉴 상단 TOKEN → "Reset Token" → Yes, do it!   │
-│  2. MTxxx... 형태 토큰 복사 (한 번만 보임)               │
+│  1. Bot 메뉴 TOKEN → "Reset Token" → Yes, do it!        │
+│  2. MTxxx... 토큰 복사 (한 번만 표시)                    │
 │                                                         │
 │  서버 초대 URL:                                          │
 │  3. 왼쪽 "OAuth2" → "URL Generator"                      │
-│  4. SCOPES: bot 체크                                     │
+│  4. SCOPES: bot                                          │
 │  5. BOT PERMISSIONS:                                     │
 │     ☑ View Channels                                     │
 │     ☑ Send Messages                                     │
@@ -506,23 +555,23 @@ powershell.exe /c start "https://discord.com/developers/applications" 2>/dev/nul
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  [3/3]  내 Discord ID 확인                               │
+│  [3/3]  내 Discord ID                                    │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │  1. Discord 앱 → 좌하단 톱니바퀴(⚙) → 설정               │
 │  2. "고급" → "개발자 모드" ON                            │
 │  3. 설정 닫기                                            │
 │  4. 좌하단 내 아이콘 우클릭 → "사용자 ID 복사"          │
-│     18자리 숫자 복사 (예: 123456789012345678)            │
+│     18자리 숫자 (예: 123456789012345678)                 │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
 
 AskUserQuestion 두 번:
 1. "Discord 봇 토큰을 붙여넣어 주세요"
-2. "내 Discord 사용자 ID(숫자)를 입력해주세요"
+2. "내 Discord 사용자 ID(숫자) 입력해주세요"
 
-받은 값:
+저장:
 ```bash
  hermes config set DISCORD_BOT_TOKEN [봇 토큰]
  hermes config set DISCORD_ALLOWED_USERS [Discord ID]
@@ -535,13 +584,12 @@ AskUserQuestion 두 번:
 hermes gateway setup
 ```
 
-대화형 화면에서 어떤 플랫폼 켤지 선택. 방금 config 한 것들이 자동으로 인식됨.
-완료되면 start:
+대화형 화면에서 플랫폼 선택. 방금 config 한 것들이 자동 인식됨. 완료되면:
 ```bash
 hermes gateway start
 ```
 
-완료 후 안내:
+안내:
 ```
 Telegram/Discord 에서 방금 만든 봇에게 메시지 보내보세요.
 "안녕" 보내면 Hermes 가 답장합니다.
@@ -555,7 +603,7 @@ Telegram/Discord 에서 방금 만든 봇에게 메시지 보내보세요.
 hermes doctor
 ```
 
-모든 체크가 ✓ 면 완료. 문제 있으면 해당 섹션 출력 보고 조치.
+모든 체크 ✓ 면 완료. 문제 있으면 해당 섹션 출력 보고 조치.
 
 ### 완료 배너 (출력)
 
@@ -564,10 +612,10 @@ hermes doctor
 ║                                                          ║
 ║   ✓  설치 완료!                                          ║
 ║                                                          ║
-║   터미널에서:   hermes                                    ║
-║   웹 대시보드:  hermes web                                ║
-║   Telegram:    봇에게 메시지 보내기                       ║
-║   Discord:     채널에서 @봇이름 멘션                      ║
+║   터미널:      hermes                                    ║
+║   웹 대시보드: hermes web                                 ║
+║   Telegram:   봇에게 메시지                              ║
+║   Discord:    채널에서 @봇이름 멘션                      ║
 ║                                                          ║
 ║   업데이트:    hermes update                             ║
 ║   진단:        hermes doctor                             ║
@@ -579,17 +627,12 @@ hermes doctor
 ╚══════════════════════════════════════════════════════════╝
 ```
 
-배너 출력 직후 브라우저 자동 오픈:
-```bash
-open "https://github.com/Hybirdss/HermEZ" 2>/dev/null || \
-xdg-open "https://github.com/Hybirdss/HermEZ" 2>/dev/null || \
-powershell.exe /c start "https://github.com/Hybirdss/HermEZ" 2>/dev/null || true
-```
+배너 출력 직후 브라우저 오픈 (규칙 패턴): `https://github.com/Hybirdss/HermEZ`
 
 안내:
 ```
 브라우저가 열렸습니다. 도움이 됐다면 ⭐ 눌러주세요!
-(브라우저 안 열렸으면 주소 직접 복사)
+(브라우저 안 열리면 위 주소 직접 복사)
 ```
 
 ---
@@ -601,11 +644,12 @@ powershell.exe /c start "https://github.com/Hybirdss/HermEZ" 2>/dev/null || true
 | `hermes: command not found` | `export PATH="$HOME/.local/bin:$PATH"` 후 재시도 |
 | `curl: command not found` | `sudo apt install curl` (Linux) / Xcode tools (Mac) |
 | API 키 오류 | `hermes doctor` → 키 재확인. config 키 이름이 **대문자**인지 확인 |
-| `out of extra usage` (Anthropic OAuth) | `hermes config set ANTHROPIC_API_KEY` 로 유료 키 전환 |
-| 게이트웨이 연결 실패 | `hermes gateway setup` 다시 실행, Discord Intent ON 확인 |
-| OpenRouter `Insufficient credits` | 유료 모델 사용 중. STEP 3 선택 1 로 돌아가서 `:free` 모델 재조회 후 `MODEL` 재설정 |
+| `out of extra usage` (Anthropic) | Claude OAuth 쓰지 말 것. `hermes config set ANTHROPIC_API_KEY` 로 API 키 전환 |
+| 게이트웨이 연결 실패 | `hermes gateway setup` 다시, Discord Intent ON 확인 |
+| OpenRouter `Insufficient credits` | 유료 모델 사용 중. STEP 3 선택 1 로 돌아가 `:free` 모델 재조회 후 `MODEL` 재설정 |
+| 특정 모델 404 / discontinued | `WebSearch` 로 최신 모델 재조회 후 교체 |
+| 브라우저 자동 오픈 실패 | 규칙 패턴의 echo 안내대로 URL 직접 복사 |
 | Python 버전 오류 | `uv python install 3.11` |
-| 특정 모델 404 / discontinued | OpenRouter 무료 티어는 월 단위로 바뀜. `WebSearch` 로 최신 `:free` 모델 재조회 후 교체 |
 
 에러 발생 시 사용자에게 에러 메시지 보여달라고 하고 위 표 참조.
 해결 안 되면 `hermes doctor` 출력 기반 진단.
@@ -614,7 +658,8 @@ powershell.exe /c start "https://github.com/Hybirdss/HermEZ" 2>/dev/null || true
 
 ## 보안 체크리스트
 
-- [ ] `hermes config set` 명령 맨 앞에 **공백 한 칸** 넣었는지 (bash history 노출 방지)
+- [ ] `hermes config set` 명령 맨 앞에 **공백 한 칸** (bash history 노출 방지)
 - [ ] 화면에 API 키 raw 출력 금지
-- [ ] config 저장 후 `~/.hermes/.env` 퍼미션 확인 (hermes가 자동으로 600 설정)
+- [ ] config 저장 후 `~/.hermes/.env` 퍼미션 확인 (hermes 가 자동 600)
 - [ ] 메신저 봇 토큰은 절대 공유 금지 (`Reset Token` 으로 재발급 가능)
+- [ ] Anthropic OAuth 경로 사용 금지 (API 키만)
