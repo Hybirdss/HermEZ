@@ -7,6 +7,7 @@ Claude가 이 파일을 읽으면 아래 단계를 순서대로 실행한다.
 - `hermes config set` 의 키 이름은 **전부 대문자** (UPPER_SNAKE_CASE). 소문자 쓰면 안 먹힘.
 - API 키가 포함된 명령은 실행 전 **맨 앞에 공백 한 칸**을 넣는다 (`HISTCONTROL=ignorespace` 가 기본이면 bash history에 안 남음).
 - 키는 화면에 그대로 출력하지 말 것.
+- **이 파일 안에 적힌 모델명(`deepseek-*`, `gpt-*`, `claude-*` 등)을 그대로 쓰지 말 것.** STEP 3 에 모델 선정 절차가 있음. 반드시 `WebSearch` 로 오늘 날짜 기준 최신 모델 조회 후 사용. 모델은 월 단위로 deprecated 된다.
 
 ---
 
@@ -135,7 +136,23 @@ hermes version
 
 ## STEP 3 — AI 모델 연결
 
-이 단계가 가장 중요하다. **2026년 기준으로 가장 쉬운 4가지 방법**을 제시한다.
+이 단계가 가장 중요하다. **가장 쉬운 4가지 방법**을 제시한다.
+
+### ⚠️ 모델 추천 원칙 (이 STEP 전체에 적용)
+
+**하드코딩된 모델명을 믿지 말 것.** 이 파일에 `deepseek-chat-v3:free`, `gpt-4o-mini`, `claude-sonnet-4` 같은 이름이 남아있어도 **그대로 쓰면 안 됨**. 모델은 월 단위로 교체·deprecated 된다.
+
+사용자가 provider 를 선택하는 순간, Claude 는 아래를 **반드시 `WebSearch` 로 조회**한다:
+
+1. **Hermes 공식 현재 추천** — 쿼리: `"site:hermes-agent.nousresearch.com recommended model {오늘의 YYYY-MM}"` 또는 `"Hermes Agent recommended model provider:{provider명} {오늘의 YYYY-MM}"`
+2. **해당 provider 의 최신 주력 모델** — 쿼리: `"{provider명} best model {오늘의 YYYY-MM} tool calling agent"`
+3. **deprecation 확인** — 쿼리: `"{후보 모델명} deprecated"` (hit 있으면 제외)
+
+세 결과를 교차해서 남는 모델 1개를 사용자에게 제시. 근거 1줄 + 오늘 날짜 표기. 사용자 승인 후 `hermes config set MODEL` 실행.
+
+> **오늘 날짜는 환경 `currentDate` 를 참조.** "2026-04-16" 처럼 YYYY-MM-DD 포맷.
+
+---
 
 AskUserQuestion:
 
@@ -191,22 +208,24 @@ AskUserQuestion: "OpenRouter 키를 복사하셨나요?"
  hermes config set OPENROUTER_API_KEY [입력받은 키]
 ```
 
-**모델은 Claude가 설치 시점에 직접 조회한 뒤 추천한다 (하드코딩 금지):**
+**모델은 "모델 추천 원칙"에 따라 설치 시점에 조회한다. 특히 OpenRouter 무료 티어는 월 단위로 바뀜.**
 
-1. `WebSearch` 실행 — 쿼리: `"OpenRouter best free model {오늘의 YYYY-MM} agent tool calling"` (오늘 날짜는 환경 context 의 `currentDate` 참조)
-2. 검색 결과에서 조건에 맞는 모델 1개 선정:
-   - 모델 ID 가 `:free` 로 끝날 것
-   - 도구 호출(tool calling) 지원
-   - 검색 결과에서 deprecated/discontinued 언급 없을 것
-   - 컨텍스트 32k 이상
-3. 선정된 `provider/model:free` 를 사용자에게 보여주고 간단 사유 1줄로 설명
-4. 사용자가 "그걸로 하자" 하면 실행:
-   ```bash
-    hermes config set MODEL "openrouter/<선정된 모델>"
-   ```
-5. 사용자가 거부하면 `hermes model` 로 대화형 선택 유도
+병렬 `WebSearch` 2개:
+- `"site:hermes-agent.nousresearch.com OpenRouter free model {오늘의 YYYY-MM}"` — Hermes 공식 현재 추천
+- `"OpenRouter best free model {오늘의 YYYY-MM} agent tool calling :free"` — 커뮤니티 최신 의견
 
-> **금지:** 과거 대화나 문서에 나왔던 모델 이름을 그대로 쓰지 말 것. OpenRouter 무료 티어는 월 단위로 바뀜. 예시로 `gemini-2.0-flash-exp:free` 는 2026-02 deprecated.
+교차해서 남는 모델 중 조건 만족하는 1개 선정:
+- 모델 ID 가 `:free` 로 끝남
+- 도구 호출 지원
+- 검색 결과에 deprecated/discontinued 언급 없음
+- 컨텍스트 32k+
+
+선정 결과를 사용자에게 제시 (`"2026-04-16 기준 현재 추천: <모델 ID>. 이유: <1줄>"`), 승인 후:
+```bash
+ hermes config set MODEL "openrouter/<선정된 모델>"
+```
+
+사용자 거부 시 `hermes model` 대화형 선택.
 
 ---
 
@@ -218,14 +237,24 @@ Hermes는 **Claude Code의 credential store를 재사용**하므로, Claude Code
 hermes model
 ```
 
+`hermes model` 실행 전에 **병렬 `WebSearch` 2개**로 현재 추천 파악:
+- `"site:hermes-agent.nousresearch.com Anthropic recommended model {오늘의 YYYY-MM}"` — Hermes 공식 추천
+- `"Anthropic Claude latest model {오늘의 YYYY-MM} agent coding"` — 제조사 최신 flagship
+
+그 결과로 "이번 달 추천: <모델명>" 한 줄 사용자에게 먼저 제시. 그런 다음:
+
+```bash
+hermes model
+```
+
 대화형 선택 화면에서:
 1. `Anthropic` 선택
 2. 인증 방식 묻는 화면에서 `OAuth (Claude Code)` 선택
 3. 브라우저가 열리면 Claude 계정으로 로그인
 4. "Authorize" 클릭
-5. 모델 선택 화면에서 **현재 최신 Claude 모델 선택**
+5. 모델 선택 화면에서 **WebSearch 로 파악한 그 모델** 선택 (메뉴에 나타난 라벨 그대로)
 
-> **Claude 모델 선택 가이드:** `hermes model` 의 대화형 메뉴에 나오는 목록 중 가장 최신 flagship (예: 목록 상단) 을 고른다. 모델명을 외워서 제시하지 말고, 메뉴에 실제로 나타난 선택지 그대로 고르게 안내.
+> 메뉴에 없는 모델이면 가장 최신 flagship (목록 상단) 을 고르게 안내.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -288,21 +317,27 @@ powershell.exe /c start "https://platform.openai.com/api-keys" 2>/dev/null || tr
  hermes config set OPENAI_API_KEY [입력받은 키]
 ```
 
-**모델은 Claude가 설치 시점에 직접 조회한 뒤 추천한다:**
+**병렬 `WebSearch` 3개**로 현재 추천 파악:
+- `"site:hermes-agent.nousresearch.com OpenAI recommended model {오늘의 YYYY-MM}"` — Hermes 공식 추천
+- `"OpenAI latest model {오늘의 YYYY-MM} agent tool calling"` — OpenAI 최신 발표
+- `"site:platform.openai.com pricing {오늘의 YYYY-MM}"` — 현재 가격
 
-1. `WebSearch` 실행 — 쿼리: `"OpenAI best model {오늘의 YYYY-MM} agent tool calling cheap"` + 보조 쿼리 `"site:platform.openai.com pricing {오늘의 YYYY-MM}"`
-2. 두 조건 모두 만족하는 모델 1개 선정:
-   - 도구 호출 성능 (agent use-case) 강함
-   - 입력/출력 가격 저렴한 편 (flagship 말고 mini/nano급)
-3. 선정된 모델명을 사용자에게 보여주고 가격도 같이 안내
-4. 사용자 승인 시:
-   ```bash
-    hermes config set MODEL "openai/<선정된 모델>"
-   ```
-5. 사용자가 "제일 좋은 거로" 하면 flagship 급 (예: 최신 reasoning 모델) 선택
-6. 사용자가 거부하면 `hermes model` 로 대화형 선택 유도
+사용자에게 먼저 묻는다:
+```
+질문: "OpenAI 모델 어느 쪽으로 갈까요?"
+선택지:
+  - 💸 저렴 + 빠른 (일상 용도, mini/nano 급)
+  - 🚀 최강 성능 (flagship, 가격 비쌈)
+  - 🧠 추론 특화 (reasoning 모델, 중간 가격)
+```
 
-> **금지:** `gpt-4o-mini`, `gpt-4o` 같은 이름을 그대로 박아넣지 말 것. OpenAI 는 모델 교체가 빠름.
+선택에 따라 WebSearch 결과에서 조건 만족하는 모델 1개 선정. 근거·가격·오늘 날짜 포함 한 줄로 제시.
+승인 후:
+```bash
+ hermes config set MODEL "openai/<선정된 모델>"
+```
+
+사용자 거부 시 `hermes model` 대화형 선택.
 
 ---
 
