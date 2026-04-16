@@ -1,6 +1,6 @@
 <img src="./banner.svg" width="100%" alt="HermEZ"/>
 
-**Hermes Agent 한방 설치 마법사** — Claude가 처음부터 끝까지 해줍니다.
+**Hermes Agent 한방 설치 마법사** — Claude/Codex가 처음부터 끝까지 해줍니다.
 
 ```bash
 git clone https://github.com/Hybirdss/HermEZ && cd HermEZ && claude .
