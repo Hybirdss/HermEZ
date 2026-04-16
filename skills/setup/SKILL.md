@@ -186,13 +186,27 @@ AskUserQuestion: "OpenRouter 키를 복사하셨나요?"
   - Google 로그인이 안 돼요 — 안내 재출력
   - 다른 방법 원해요 — STEP 3 처음으로
 
-키를 Other 로 입력받아 설정 (맨 앞 공백 + 대문자 키명):
+키를 Other 로 입력받아 저장:
 ```bash
  hermes config set OPENROUTER_API_KEY [입력받은 키]
- hermes config set MODEL "openrouter/deepseek/deepseek-chat-v3:free"
 ```
 
-> **모델 선택 이유:** `deepseek-chat-v3:free` 는 2026-04 기준 OpenRouter 무료 티어에서 가장 안정적. 과거 추천이었던 `google/gemini-2.0-flash-exp:free` 는 2026-02 에 deprecated. `google/gemini-2.0-flash-001` 는 유료 ($0.10/M input).
+**모델은 Claude가 설치 시점에 직접 조회한 뒤 추천한다 (하드코딩 금지):**
+
+1. `WebSearch` 실행 — 쿼리: `"OpenRouter best free model {오늘의 YYYY-MM} agent tool calling"` (오늘 날짜는 환경 context 의 `currentDate` 참조)
+2. 검색 결과에서 조건에 맞는 모델 1개 선정:
+   - 모델 ID 가 `:free` 로 끝날 것
+   - 도구 호출(tool calling) 지원
+   - 검색 결과에서 deprecated/discontinued 언급 없을 것
+   - 컨텍스트 32k 이상
+3. 선정된 `provider/model:free` 를 사용자에게 보여주고 간단 사유 1줄로 설명
+4. 사용자가 "그걸로 하자" 하면 실행:
+   ```bash
+    hermes config set MODEL "openrouter/<선정된 모델>"
+   ```
+5. 사용자가 거부하면 `hermes model` 로 대화형 선택 유도
+
+> **금지:** 과거 대화나 문서에 나왔던 모델 이름을 그대로 쓰지 말 것. OpenRouter 무료 티어는 월 단위로 바뀜. 예시로 `gemini-2.0-flash-exp:free` 는 2026-02 deprecated.
 
 ---
 
@@ -209,7 +223,9 @@ hermes model
 2. 인증 방식 묻는 화면에서 `OAuth (Claude Code)` 선택
 3. 브라우저가 열리면 Claude 계정으로 로그인
 4. "Authorize" 클릭
-5. 모델 선택 화면에서 `claude-sonnet-4` 선택
+5. 모델 선택 화면에서 **현재 최신 Claude 모델 선택**
+
+> **Claude 모델 선택 가이드:** `hermes model` 의 대화형 메뉴에 나오는 목록 중 가장 최신 flagship (예: 목록 상단) 을 고른다. 모델명을 외워서 제시하지 말고, 메뉴에 실제로 나타난 선택지 그대로 고르게 안내.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -267,13 +283,26 @@ powershell.exe /c start "https://platform.openai.com/api-keys" 2>/dev/null || tr
 └─────────────────────────────────────────────────────────┘
 ```
 
-키를 Other 로 입력받아 설정:
+키를 Other 로 입력받아 저장:
 ```bash
  hermes config set OPENAI_API_KEY [입력받은 키]
- hermes config set MODEL "openai/gpt-4o-mini"
 ```
 
-> **모델:** `gpt-4o-mini` 는 현재 가장 저렴하면서 도구 호출 성능 좋음. `gpt-4o` 는 10배 비쌈.
+**모델은 Claude가 설치 시점에 직접 조회한 뒤 추천한다:**
+
+1. `WebSearch` 실행 — 쿼리: `"OpenAI best model {오늘의 YYYY-MM} agent tool calling cheap"` + 보조 쿼리 `"site:platform.openai.com pricing {오늘의 YYYY-MM}"`
+2. 두 조건 모두 만족하는 모델 1개 선정:
+   - 도구 호출 성능 (agent use-case) 강함
+   - 입력/출력 가격 저렴한 편 (flagship 말고 mini/nano급)
+3. 선정된 모델명을 사용자에게 보여주고 가격도 같이 안내
+4. 사용자 승인 시:
+   ```bash
+    hermes config set MODEL "openai/<선정된 모델>"
+   ```
+5. 사용자가 "제일 좋은 거로" 하면 flagship 급 (예: 최신 reasoning 모델) 선택
+6. 사용자가 거부하면 `hermes model` 로 대화형 선택 유도
+
+> **금지:** `gpt-4o-mini`, `gpt-4o` 같은 이름을 그대로 박아넣지 말 것. OpenAI 는 모델 교체가 빠름.
 
 ---
 
@@ -538,9 +567,9 @@ powershell.exe /c start "https://github.com/Hybirdss/HermEZ" 2>/dev/null || true
 | API 키 오류 | `hermes doctor` → 키 재확인. config 키 이름이 **대문자**인지 확인 |
 | `out of extra usage` (Anthropic OAuth) | `hermes config set ANTHROPIC_API_KEY` 로 유료 키 전환 |
 | 게이트웨이 연결 실패 | `hermes gateway setup` 다시 실행, Discord Intent ON 확인 |
-| OpenRouter `Insufficient credits` | 유료 모델 사용 중. `hermes config set MODEL "openrouter/deepseek/deepseek-chat-v3:free"` 로 무료 전환 |
+| OpenRouter `Insufficient credits` | 유료 모델 사용 중. STEP 3 선택 1 로 돌아가서 `:free` 모델 재조회 후 `MODEL` 재설정 |
 | Python 버전 오류 | `uv python install 3.11` |
-| `gemini-2.0-flash-exp:free` 404 | 2026-02 deprecated. 위 무료 모델로 교체 |
+| 특정 모델 404 / discontinued | OpenRouter 무료 티어는 월 단위로 바뀜. `WebSearch` 로 최신 `:free` 모델 재조회 후 교체 |
 
 에러 발생 시 사용자에게 에러 메시지 보여달라고 하고 위 표 참조.
 해결 안 되면 `hermes doctor` 출력 기반 진단.
